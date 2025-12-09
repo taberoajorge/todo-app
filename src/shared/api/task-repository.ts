@@ -11,10 +11,6 @@ export interface Task {
 
 export type TaskInput = Pick<Task, 'title' | 'description' | 'deadline'>;
 
-/**
- * Creates a task repository with CRUD operations
- * Decoupled from storage implementation via dependency injection
- */
 export function createTaskRepository(storage: ITaskStorage) {
   return {
     async getAll(): Promise<Task[]> {
@@ -65,7 +61,6 @@ export function createTaskRepository(storage: ITaskStorage) {
       const index = tasks.findIndex((t) => t.id === id);
       if (index === -1) return undefined;
 
-      // Create new object instead of mutating
       const toggled: Task = { ...tasks[index], completed: !tasks[index].completed };
       const updatedTasks = [...tasks];
       updatedTasks[index] = toggled;
@@ -77,14 +72,8 @@ export function createTaskRepository(storage: ITaskStorage) {
       const tasks = await storage.getAll();
       const taskMap = new Map(tasks.map((t) => [t.id, t]));
       const reorderedIds = new Set(taskIds);
-
-      // Get reordered tasks in new order
       const reordered = taskIds.map((id) => taskMap.get(id)).filter(Boolean) as Task[];
-
-      // Preserve tasks not in reorder list (e.g., completed tasks when reordering pending)
       const preserved = tasks.filter((t) => !reorderedIds.has(t.id));
-
-      // Combine: reordered tasks first, then preserved tasks
       const allTasks = [...reordered, ...preserved];
       await storage.save(allTasks);
       return allTasks;

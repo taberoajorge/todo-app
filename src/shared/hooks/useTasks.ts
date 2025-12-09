@@ -24,6 +24,45 @@ function useRepository(): TaskRepository {
   return repository;
 }
 
+function matchesSearch(task: Task, query: string): boolean {
+  if (!query) return true;
+  const lowerQuery = query.toLowerCase();
+  return (
+    task.title?.toLowerCase().includes(lowerQuery) ||
+    task.description?.toLowerCase().includes(lowerQuery) ||
+    false
+  );
+}
+
+function matchesStatus(task: Task, status: FilterStatus): boolean {
+  if (status === 'all') return true;
+  if (status === 'pending') return !task.completed;
+  return task.completed;
+}
+
+function partitionTasks(
+  tasks: Task[],
+  searchQuery: string,
+  filterStatus: FilterStatus,
+): { pending: Task[]; completed: Task[] } {
+  const query = searchQuery.trim();
+  const pending: Task[] = [];
+  const completed: Task[] = [];
+
+  for (const task of tasks) {
+    if (!matchesSearch(task, query)) continue;
+    if (!matchesStatus(task, filterStatus)) continue;
+
+    if (task.completed) {
+      completed.push(task);
+    } else {
+      pending.push(task);
+    }
+  }
+
+  return { pending, completed };
+}
+
 export function useTasks() {
   const repository = useRepository();
 
@@ -35,16 +74,15 @@ export function useTasks() {
   const [optimisticTasks, setOptimisticTask] = useOptimistic(
     tasks,
     (currentTasks: Task[], action: { type: 'toggle' | 'delete'; id: string }) => {
-      switch (action.type) {
-        case 'toggle':
-          return currentTasks.map((t) =>
-            t.id === action.id ? { ...t, completed: !t.completed } : t,
-          );
-        case 'delete':
-          return currentTasks.filter((t) => t.id !== action.id);
-        default:
-          return currentTasks;
+      if (action.type === 'toggle') {
+        return currentTasks.map((t) =>
+          t.id === action.id ? { ...t, completed: !t.completed } : t,
+        );
       }
+      if (action.type === 'delete') {
+        return currentTasks.filter((t) => t.id !== action.id);
+      }
+      return currentTasks;
     },
   );
 
@@ -63,36 +101,7 @@ export function useTasks() {
   }, [repository]);
 
   const { pendingTasks, completedTasks } = useMemo(() => {
-    const trimmedQuery = searchQuery.trim();
-    const query = trimmedQuery.toLowerCase();
-
-    const matchesSearch = (t: Task): boolean => {
-      if (!trimmedQuery) return true;
-      return (
-        t.title?.toLowerCase().includes(query) ||
-        t.description?.toLowerCase().includes(query) ||
-        false
-      );
-    };
-
-    const matchesStatus = (t: Task): boolean =>
-      filterStatus === 'all' ||
-      (filterStatus === 'pending' && !t.completed) ||
-      (filterStatus === 'completed' && t.completed);
-
-    const pending: Task[] = [];
-    const completed: Task[] = [];
-
-    for (const t of optimisticTasks) {
-      if (matchesSearch(t) && matchesStatus(t)) {
-        if (t.completed) {
-          completed.push(t);
-        } else {
-          pending.push(t);
-        }
-      }
-    }
-
+    const { pending, completed } = partitionTasks(optimisticTasks, searchQuery, filterStatus);
     return { pendingTasks: pending, completedTasks: completed };
   }, [optimisticTasks, searchQuery, filterStatus]);
 
@@ -147,7 +156,6 @@ export function useTasks() {
 
   const reorderTasks = useCallback(
     async (orderedIds: string[]) => {
-      // Use the result from repository which preserves all tasks
       const allTasks = await repository.reorder(orderedIds);
       setTasks(allTasks);
     },

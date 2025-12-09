@@ -2,10 +2,6 @@ import type { Task } from '@/shared/api/task-repository';
 import { STORAGE_KEYS } from '@/shared/config/constants';
 import type { ITaskStorage } from './types';
 
-/**
- * LocalStorage adapter implementing ITaskStorage
- * Handles SSR safety by checking for window
- */
 export const localStorageAdapter: ITaskStorage = {
   async getAll(): Promise<Task[]> {
     if (typeof window === 'undefined') return [];

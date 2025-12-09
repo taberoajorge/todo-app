@@ -10,10 +10,6 @@ interface DialogState<T> {
   setOpen: (open: boolean) => void;
 }
 
-/**
- * Generic hook for managing dialog state with associated data.
- * Useful for edit dialogs, delete confirmations, etc.
- */
 export function useDialogState<T>(): DialogState<T> {
   const [data, setData] = useState<T | null>(null);
   const [isOpen, setIsOpen] = useState(false);

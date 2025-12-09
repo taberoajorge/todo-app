@@ -4,10 +4,6 @@ import { useCallback } from 'react';
 import { toast } from 'sonner';
 import type { Task } from '@/shared/api';
 
-/**
- * Hook that provides toast notification functions for task operations.
- * Centralizes all task-related notification logic.
- */
 export function useTaskNotifications() {
   const notifyCreated = useCallback((task: Task) => {
     toast.success('Task created', {
