@@ -68,11 +68,15 @@ describe('Utils (cn) Property-Based Tests', () => {
     });
 
     it('should handle conditional class objects', () => {
+      const validClassName = fc
+        .stringMatching(/^[a-z][a-z0-9_-]*$/)
+        .filter((s) => s.length >= 1 && s.length <= 20);
+
       fc.assert(
         fc.property(
-          fc.string({ minLength: 1 }),
+          validClassName,
           fc.boolean(),
-          fc.string({ minLength: 1 }),
+          validClassName,
           fc.boolean(),
           (class1, cond1, class2, cond2) => {
             const result = cn({
@@ -82,11 +86,13 @@ describe('Utils (cn) Property-Based Tests', () => {
 
             // If both conditions are true and classes are different, both should be in result
             if (cond1 && cond2 && class1 !== class2) {
-              return result.includes(class1.trim()) || result.includes(class2.trim());
+              return result.includes(class1) && result.includes(class2);
+            } else if (cond1 && cond2 && class1 === class2) {
+              return result === class1;
             } else if (cond1) {
-              return result.includes(class1.trim()) || result === class1.trim();
+              return result === class1;
             } else if (cond2) {
-              return result.includes(class2.trim()) || result === class2.trim();
+              return result === class2;
             } else {
               return result === '';
             }
