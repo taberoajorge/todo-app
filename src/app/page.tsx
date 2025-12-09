@@ -89,7 +89,9 @@ export default function HomePage() {
         <TaskBoard
           pendingTasks={pendingTasks}
           completedTasks={completedTasks}
-          actions={taskActions}
+          onToggle={taskActions.onToggle}
+          onEdit={taskActions.onEdit}
+          onDelete={taskActions.onDelete}
           onReorder={reorderTasks}
         />
 
