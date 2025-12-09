@@ -1,5 +1,11 @@
 # Todo App
 
+[![Deploy](https://img.shields.io/badge/deploy-vercel-black?logo=vercel)](https://taberoa.com)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://typescriptlang.org)
+[![Tailwind](https://img.shields.io/badge/Tailwind-3-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
+
 Project and task management application built with Next.js 15 and React 19.
 
 ## Quickstart
