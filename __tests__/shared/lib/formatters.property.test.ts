@@ -84,6 +84,8 @@ describe('Formatters Property-Based Tests', () => {
         fc.property(
           fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }),
           (date) => {
+            if (Number.isNaN(date.getTime())) return true;
+
             const iso = date.toISOString();
             const result1 = formatDeadline(iso);
             const result2 = formatDeadline(iso);
