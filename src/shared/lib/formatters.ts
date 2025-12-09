@@ -25,6 +25,7 @@ export function isOverdue(deadline: string | undefined): boolean {
   return isPast(new Date(deadline));
 }
 
+/** Converts Date to datetime-local input format (yyyy-MM-ddTHH:mm). */
 export function toDateTimeLocal(date: Date): string {
   return format(date, "yyyy-MM-dd'T'HH:mm");
 }

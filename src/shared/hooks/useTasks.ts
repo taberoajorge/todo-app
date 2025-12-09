@@ -14,6 +14,7 @@ import type { Task, TaskInput, TaskRepository } from '@/shared/api/task-reposito
 
 export type FilterStatus = 'all' | 'pending' | 'completed';
 
+/** Provides TaskRepository to useTasks hook. Must be wrapped in Providers. */
 export const RepositoryContext = createContext<TaskRepository | null>(null);
 
 function useRepository(): TaskRepository {

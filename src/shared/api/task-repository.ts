@@ -4,6 +4,7 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
+  /** Task due date in ISO 8601 format. */
   deadline?: string;
   completed: boolean;
   createdAt: string;
@@ -68,6 +69,7 @@ export function createTaskRepository(storage: ITaskStorage) {
       return toggled;
     },
 
+    /** Reorders pending tasks. Tasks not in taskIds are preserved at the end. */
     async reorder(taskIds: string[]): Promise<Task[]> {
       const tasks = await storage.getAll();
       const taskMap = new Map(tasks.map((t) => [t.id, t]));
