@@ -1,11 +1,15 @@
+const path = require('node:path');
 const nextJest = require('next/jest');
 
+const rootDir = path.resolve(__dirname, '../..');
+
 const createJestConfig = nextJest({
-  dir: './',
+  dir: rootDir,
 });
 
 /** @type {import('jest').Config} */
 const config = {
+  rootDir,
   setupFilesAfterEnv: ['<rootDir>/config/jest/setup.ts'],
   testEnvironment: 'jsdom',
   moduleNameMapper: {
