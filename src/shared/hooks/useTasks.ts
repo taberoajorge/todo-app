@@ -1,183 +1,122 @@
 'use client';
 
-import {
-  createContext,
-  startTransition,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useOptimistic,
-  useState,
-} from 'react';
-import type { Task, TaskInput, TaskRepository } from '@/shared/api/task-repository';
+import { startTransition, useCallback, useEffect, useMemo, useOptimistic, useState } from 'react';
+import { useTaskRepository } from '@/app/providers';
+import type { Task, TaskInput, TaskStatus } from '@/shared/api';
+import { filterByToday } from '@/shared/lib/date-utils';
 
-export type FilterStatus = 'all' | 'pending' | 'completed';
-
-/** Provides TaskRepository to useTasks hook. Must be wrapped in Providers. */
-export const RepositoryContext = createContext<TaskRepository | null>(null);
-
-function useRepository(): TaskRepository {
-  const repository = useContext(RepositoryContext);
-  if (!repository) {
-    throw new Error('useTasks must be used within a RepositoryProvider');
-  }
-  return repository;
+interface UseTasksReturn {
+  tasks: Task[];
+  todo: Task[];
+  inProgress: Task[];
+  done: Task[];
+  todayTasks: Task[];
+  isLoading: boolean;
+  createTask: (input: TaskInput) => Promise<Task>;
+  updateTask: (id: string, input: Partial<TaskInput>) => Promise<void>;
+  updateTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
 }
 
-function matchesSearch(task: Task, query: string): boolean {
-  if (!query) return true;
-  const lowerQuery = query.toLowerCase();
-  return (
-    task.title?.toLowerCase().includes(lowerQuery) ||
-    task.description?.toLowerCase().includes(lowerQuery) ||
-    false
-  );
-}
-
-function matchesStatus(task: Task, status: FilterStatus): boolean {
-  if (status === 'all') return true;
-  if (status === 'pending') return !task.completed;
-  return task.completed;
-}
-
-function partitionTasks(
-  tasks: Task[],
-  searchQuery: string,
-  filterStatus: FilterStatus,
-): { pending: Task[]; completed: Task[] } {
-  const query = searchQuery.trim();
-  const pending: Task[] = [];
-  const completed: Task[] = [];
-
-  for (const task of tasks) {
-    if (!matchesSearch(task, query)) continue;
-    if (!matchesStatus(task, filterStatus)) continue;
-
-    if (task.completed) {
-      completed.push(task);
-    } else {
-      pending.push(task);
-    }
-  }
-
-  return { pending, completed };
-}
-
-export function useTasks() {
-  const repository = useRepository();
+export function useTasks(projectId?: string): UseTasksReturn {
+  const repository = useTaskRepository();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
 
-  const [optimisticTasks, setOptimisticTask] = useOptimistic(
+  type OptimisticAction =
+    | { type: 'status'; id: string; status: TaskStatus }
+    | { type: 'delete'; id: string };
+
+  const [optimisticTasks, updateOptimistic] = useOptimistic(
     tasks,
-    (currentTasks: Task[], action: { type: 'toggle' | 'delete'; id: string }) => {
-      if (action.type === 'toggle') {
-        return currentTasks.map((t) =>
-          t.id === action.id ? { ...t, completed: !t.completed } : t,
-        );
+    (current: Task[], action: OptimisticAction) => {
+      switch (action.type) {
+        case 'status':
+          return current.map((t) => (t.id === action.id ? { ...t, status: action.status } : t));
+        case 'delete':
+          return current.filter((t) => t.id !== action.id);
+        default:
+          return current;
       }
-      if (action.type === 'delete') {
-        return currentTasks.filter((t) => t.id !== action.id);
-      }
-      return currentTasks;
     },
   );
 
   useEffect(() => {
-    async function loadTasks() {
+    async function load() {
       try {
-        const loaded = await repository.getAll();
-        setTasks(loaded);
+        const data = projectId
+          ? await repository.getByProjectId(projectId)
+          : await repository.getAll();
+        setTasks(data);
       } catch (error) {
         console.error('Failed to load tasks:', error);
       } finally {
         setIsLoading(false);
       }
     }
-    loadTasks();
-  }, [repository]);
+    load();
+  }, [repository, projectId]);
 
-  const { pendingTasks, completedTasks } = useMemo(() => {
-    const { pending, completed } = partitionTasks(optimisticTasks, searchQuery, filterStatus);
-    return { pendingTasks: pending, completedTasks: completed };
-  }, [optimisticTasks, searchQuery, filterStatus]);
+  const tasksByStatus = useMemo(() => {
+    const todo = optimisticTasks.filter((t) => t.status === 'todo');
+    const inProgress = optimisticTasks.filter((t) => t.status === 'in_progress');
+    const done = optimisticTasks.filter((t) => t.status === 'done');
+    return { todo, inProgress, done };
+  }, [optimisticTasks]);
 
-  const totalPending = useMemo(
-    () => optimisticTasks.filter((t) => !t.completed).length,
+  const todayTasks = useMemo(
+    () => filterByToday(optimisticTasks, (t) => t.deadline),
     [optimisticTasks],
   );
 
-  const totalCompleted = useMemo(
-    () => optimisticTasks.filter((t) => t.completed).length,
-    [optimisticTasks],
-  );
-
-  const addTask = useCallback(
-    async (input: TaskInput) => {
-      const newTask = await repository.create(input);
-      setTasks((prev) => [...prev, newTask]);
-      return newTask;
+  const createTask = useCallback(
+    async (input: TaskInput): Promise<Task> => {
+      const task = await repository.create(input);
+      setTasks((prev) => [...prev, task]);
+      return task;
     },
     [repository],
   );
 
   const updateTask = useCallback(
-    async (id: string, updates: Partial<TaskInput>) => {
-      await repository.update(id, updates);
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+    async (id: string, input: Partial<TaskInput>): Promise<void> => {
+      await repository.update(id, input);
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...input } : t)));
     },
     [repository],
   );
 
-  const deleteTask = useCallback(
-    async (id: string) => {
+  const updateTaskStatus = useCallback(
+    async (id: string, status: TaskStatus): Promise<void> => {
       startTransition(() => {
-        setOptimisticTask({ type: 'delete', id });
+        updateOptimistic({ type: 'status', id, status });
+      });
+      await repository.updateStatus(id, status);
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    },
+    [repository, updateOptimistic],
+  );
+
+  const deleteTask = useCallback(
+    async (id: string): Promise<void> => {
+      startTransition(() => {
+        updateOptimistic({ type: 'delete', id });
       });
       await repository.delete(id);
       setTasks((prev) => prev.filter((t) => t.id !== id));
     },
-    [repository, setOptimisticTask],
-  );
-
-  const toggleTask = useCallback(
-    async (id: string) => {
-      startTransition(() => {
-        setOptimisticTask({ type: 'toggle', id });
-      });
-      await repository.toggle(id);
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
-    },
-    [repository, setOptimisticTask],
-  );
-
-  const reorderTasks = useCallback(
-    async (orderedIds: string[]) => {
-      const allTasks = await repository.reorder(orderedIds);
-      setTasks(allTasks);
-    },
-    [repository],
+    [repository, updateOptimistic],
   );
 
   return {
     tasks: optimisticTasks,
-    pendingTasks,
-    completedTasks,
-    totalPending,
-    totalCompleted,
+    ...tasksByStatus,
+    todayTasks,
     isLoading,
-    searchQuery,
-    setSearchQuery,
-    filterStatus,
-    setFilterStatus,
-    addTask,
+    createTask,
     updateTask,
+    updateTaskStatus,
     deleteTask,
-    toggleTask,
-    reorderTasks,
   };
 }
