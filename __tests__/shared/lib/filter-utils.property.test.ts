@@ -58,7 +58,7 @@ describe('Filter Utils Property-Based Tests', () => {
       const tasksWithUndefinedTitle = [
         {
           id: '1',
-          title: undefined as any, // Simulating corrupted data
+          title: undefined as unknown as string, // Simulating corrupted data
           description: 'Test',
           completed: false,
           createdAt: new Date().toISOString(),
