@@ -1,18 +1,10 @@
-import type { Task } from '@/entities/task';
 import { STORAGE_KEYS } from '@/shared/config/constants';
 import { localStorageAdapter } from '@/shared/lib/storage';
+import { createTask } from '../../../test-utils/factories';
 
 describe('localStorageAdapter', () => {
   beforeEach(() => {
     localStorage.clear();
-  });
-
-  const createTask = (overrides: Partial<Task> = {}): Task => ({
-    id: crypto.randomUUID(),
-    title: 'Test Task',
-    completed: false,
-    createdAt: new Date().toISOString(),
-    ...overrides,
   });
 
   describe('getAll', () => {

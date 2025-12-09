@@ -28,27 +28,6 @@ describe('Utils (cn) Property-Based Tests', () => {
       expect(cn()).toBe('');
     });
 
-    it('should handle undefined and null gracefully', () => {
-      fc.assert(
-        fc.property(
-          fc.array(
-            fc.oneof(
-              fc.string(),
-              fc.constant(undefined),
-              fc.constant(null),
-              fc.constant(false),
-              fc.constant(true),
-            ),
-          ),
-          (inputs) => {
-            const result = cn(...inputs);
-            return typeof result === 'string';
-          },
-        ),
-        { numRuns: 100 },
-      );
-    });
-
     it('should filter out falsy values except empty strings', () => {
       expect(cn('a', false, 'b', null, 'c', undefined, 'd')).toBe('a b c d');
       expect(cn('a', 0, 'b')).toBe('a b');

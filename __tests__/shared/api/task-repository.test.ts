@@ -1,6 +1,7 @@
 import type { Task } from '@/shared/api/task-repository';
 import { createTaskRepository } from '@/shared/api/task-repository';
 import type { ITaskStorage } from '@/shared/lib/storage';
+import { createTask } from '../../test-utils/factories';
 
 describe('createTaskRepository', () => {
   let mockStorage: ITaskStorage;
@@ -19,14 +20,6 @@ describe('createTaskRepository', () => {
         return Promise.resolve();
       }),
     };
-  });
-
-  const createTask = (overrides: Partial<Task> = {}): Task => ({
-    id: crypto.randomUUID(),
-    title: 'Test Task',
-    completed: false,
-    createdAt: new Date().toISOString(),
-    ...overrides,
   });
 
   describe('getAll', () => {

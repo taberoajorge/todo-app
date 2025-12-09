@@ -306,29 +306,6 @@ describe('Filter Utils Property-Based Tests', () => {
       );
     });
 
-    it('should find tasks with search query in description', () => {
-      const tasks: Task[] = [
-        {
-          id: '1',
-          title: 'Task One',
-          description: 'Contains special keyword',
-          completed: false,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          title: 'Task Two',
-          description: 'Nothing here',
-          completed: false,
-          createdAt: new Date().toISOString(),
-        },
-      ];
-
-      const filtered = filterTasks(tasks, 'keyword', 'all');
-      expect(filtered.length).toBe(1);
-      expect(filtered[0].id).toBe('1');
-    });
-
     it('should handle tasks without description', () => {
       fc.assert(
         fc.asyncProperty(

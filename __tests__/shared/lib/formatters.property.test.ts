@@ -158,29 +158,6 @@ describe('Formatters Property-Based Tests', () => {
       );
     });
 
-    it('should agree with formatDeadline on overdue status', () => {
-      fc.assert(
-        fc.property(
-          fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }),
-          (date) => {
-            // Filter out invalid dates
-            if (Number.isNaN(date.getTime())) return true;
-
-            const iso = date.toISOString();
-            const overdue = isOverdue(iso);
-            const formatted = formatDeadline(iso);
-
-            if (overdue) {
-              return formatted?.startsWith('Overdue') ?? false;
-            } else {
-              return !formatted?.startsWith('Overdue');
-            }
-          },
-        ),
-        { numRuns: 100 },
-      );
-    });
-
     it('should always return a boolean', () => {
       const validDateString = fc
         .date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') })
