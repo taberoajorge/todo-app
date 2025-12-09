@@ -11,6 +11,7 @@ import type { Task } from '@/shared/api';
 import { DEFAULTS, ROUTES } from '@/shared/config/constants';
 import { useHomeData } from '@/shared/hooks/useHomeData';
 import { COLORS, getContrastColor, getDarkModeColor } from '@/shared/lib/colors';
+import { calculateTimeProgress } from '@/shared/lib/formatters';
 import { cn } from '@/shared/lib/utils';
 import { Card, CardContent } from '@/shared/ui/card';
 import {
@@ -255,7 +256,7 @@ export default function HomePage() {
                           </p>
                         </div>
                         <ProgressRing
-                          progress={50}
+                          progress={calculateTimeProgress(task.createdAt, task.deadline)}
                           size={48}
                           strokeWidth={4}
                           color={project?.color}

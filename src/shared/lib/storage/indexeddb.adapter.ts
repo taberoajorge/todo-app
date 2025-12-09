@@ -1,3 +1,4 @@
+import type { Task } from '@/shared/api/types';
 import { DB_NAME, DB_VERSION, STORES } from '@/shared/config/constants';
 
 let dbInstance: IDBDatabase | null = null;
@@ -142,7 +143,7 @@ export function createStore<T extends { id: string }>(storeName: string): IDBSto
   };
 }
 
-export async function getTasksByProjectId(projectId: string): Promise<unknown[]> {
+export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
   if (typeof window === 'undefined') return [];
 
   try {
@@ -153,7 +154,7 @@ export async function getTasksByProjectId(projectId: string): Promise<unknown[]>
       const index = store.index('projectId');
       const request = index.getAll(projectId);
 
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => resolve((request.result as Task[]) || []);
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
@@ -166,27 +167,20 @@ export async function deleteTasksByProjectId(projectId: string): Promise<void> {
   if (typeof window === 'undefined') return;
 
   const tasks = await getTasksByProjectId(projectId);
+  if (tasks.length === 0) return;
+
   const db = await openDB();
+  const transaction = db.transaction(STORES.TASKS, 'readwrite');
+  const store = transaction.objectStore(STORES.TASKS);
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.TASKS, 'readwrite');
-    const store = transaction.objectStore(STORES.TASKS);
-
-    let completed = 0;
-    const total = tasks.length;
-
-    if (total === 0) {
-      resolve();
-      return;
-    }
-
-    for (const task of tasks) {
-      const request = store.delete((task as { id: string }).id);
-      request.onsuccess = () => {
-        completed++;
-        if (completed === total) resolve();
-      };
-      request.onerror = () => reject(request.error);
-    }
-  });
+  await Promise.all(
+    tasks.map(
+      (task) =>
+        new Promise<void>((resolve, reject) => {
+          const request = store.delete(task.id);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        }),
+    ),
+  );
 }

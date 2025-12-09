@@ -3,6 +3,7 @@
 import { format } from 'date-fns';
 import { Check, Clock, Play } from 'lucide-react';
 import type { Task, TaskStatus } from '@/shared/api';
+import { calculateTimeProgress } from '@/shared/lib/formatters';
 import { cn } from '@/shared/lib/utils';
 import { ProgressRing } from '@/shared/ui/progress-ring';
 import { SwipeableCard } from '@/shared/ui/swipeable-card';
@@ -17,15 +18,9 @@ interface TaskCardProps {
   onClick?: () => void;
 }
 
-function getProgress(status: TaskStatus): number {
-  switch (status) {
-    case 'done':
-      return 100;
-    case 'in_progress':
-      return 50;
-    default:
-      return 0;
-  }
+function getProgress(task: Task): number {
+  if (task.status === 'done') return 100;
+  return calculateTimeProgress(task.createdAt, task.deadline);
 }
 
 function getStatusLabel(status: TaskStatus): string {
@@ -48,7 +43,7 @@ export function TaskCard({
   onSwipeRight,
   onClick,
 }: TaskCardProps) {
-  const progress = getProgress(task.status);
+  const progress = getProgress(task);
   const isDone = task.status === 'done';
 
   return (

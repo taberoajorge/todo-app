@@ -89,24 +89,36 @@ export function useTasks(projectId?: string): UseTasksReturn {
 
   const updateTaskStatus = useCallback(
     async (id: string, status: TaskStatus): Promise<void> => {
+      const previousTasks = tasks;
       startTransition(() => {
         updateOptimistic({ type: 'status', id, status });
       });
-      await repository.updateStatus(id, status);
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+      try {
+        await repository.updateStatus(id, status);
+        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+      } catch (error) {
+        setTasks(previousTasks);
+        throw error;
+      }
     },
-    [repository, updateOptimistic],
+    [repository, updateOptimistic, tasks],
   );
 
   const deleteTask = useCallback(
     async (id: string): Promise<void> => {
+      const previousTasks = tasks;
       startTransition(() => {
         updateOptimistic({ type: 'delete', id });
       });
-      await repository.delete(id);
-      setTasks((prev) => prev.filter((t) => t.id !== id));
+      try {
+        await repository.delete(id);
+        setTasks((prev) => prev.filter((t) => t.id !== id));
+      } catch (error) {
+        setTasks(previousTasks);
+        throw error;
+      }
     },
-    [repository, updateOptimistic],
+    [repository, updateOptimistic, tasks],
   );
 
   return {

@@ -8,6 +8,12 @@
 
 Project and task management application built with Next.js 15 and React 19.
 
+<p align="center">
+  <img src="public/screenshots/mobile.jpeg" width="200" alt="Mobile" />
+  <img src="public/screenshots/tablet.jpeg" width="300" alt="Tablet" />
+  <img src="public/screenshots/desktop.jpeg" width="400" alt="Desktop" />
+</p>
+
 ## Quickstart
 
 **Requirements:** Node.js 18+, pnpm

@@ -1,34 +1,6 @@
-import { filterByToday, getTodayBoundaries, isToday } from '@/shared/lib/date-utils';
+import { filterByToday, isOverdue, isToday } from '@/shared/lib/date-utils';
 
 describe('date-utils', () => {
-  describe('getTodayBoundaries', () => {
-    it('should return start of today at midnight', () => {
-      const { start } = getTodayBoundaries();
-
-      expect(start.getHours()).toBe(0);
-      expect(start.getMinutes()).toBe(0);
-      expect(start.getSeconds()).toBe(0);
-      expect(start.getMilliseconds()).toBe(0);
-    });
-
-    it('should return end as start of tomorrow', () => {
-      const { start, end } = getTodayBoundaries();
-
-      const expectedEnd = new Date(start);
-      expectedEnd.setDate(expectedEnd.getDate() + 1);
-
-      expect(end.getTime()).toBe(expectedEnd.getTime());
-    });
-
-    it('should have end exactly 24 hours after start', () => {
-      const { start, end } = getTodayBoundaries();
-      const diff = end.getTime() - start.getTime();
-      const oneDayMs = 24 * 60 * 60 * 1000;
-
-      expect(diff).toBe(oneDayMs);
-    });
-  });
-
   describe('isToday', () => {
     beforeEach(() => {
       jest.useFakeTimers();
@@ -145,6 +117,42 @@ describe('date-utils', () => {
       filterByToday(items, getDate);
 
       expect(items).toHaveLength(originalLength);
+    });
+  });
+
+  describe('isOverdue', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2024-06-15T12:00:00'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should return false for undefined', () => {
+      expect(isOverdue(undefined)).toBe(false);
+    });
+
+    it('should return true for past dates (before current time)', () => {
+      // Yesterday
+      expect(isOverdue('2024-06-14T23:59:59')).toBe(true);
+      expect(isOverdue('2024-06-14T00:00:00')).toBe(true);
+      // Far past
+      expect(isOverdue('2024-01-01T00:00:00')).toBe(true);
+      // Earlier today (before 12:00:00)
+      expect(isOverdue('2024-06-15T11:59:59')).toBe(true);
+      expect(isOverdue('2024-06-15T00:00:00')).toBe(true);
+    });
+
+    it('should return false for current and future times', () => {
+      // Current time (not past)
+      expect(isOverdue('2024-06-15T12:00:00')).toBe(false);
+      // Later today
+      expect(isOverdue('2024-06-15T23:59:59')).toBe(false);
+      // Tomorrow and beyond
+      expect(isOverdue('2024-06-16T00:00:00')).toBe(false);
+      expect(isOverdue('2024-12-31T00:00:00')).toBe(false);
     });
   });
 });

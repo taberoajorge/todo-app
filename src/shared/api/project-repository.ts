@@ -3,7 +3,6 @@ import { calculateProjectStats, sortByLastActivity } from '@/shared/lib/project-
 import {
   createStore,
   deleteTasksByProjectId,
-  getTasksByProjectId,
   type IDBStore,
 } from '@/shared/lib/storage/indexeddb.adapter';
 import { type BaseRepository, createBaseRepository } from './base-repository';
@@ -15,6 +14,7 @@ export interface ProjectRepository extends BaseRepository<Project, ProjectInput>
 
 export function createProjectRepository(
   store: IDBStore<Project> = createStore<Project>(STORES.PROJECTS),
+  taskStore: IDBStore<Task> = createStore<Task>(STORES.TASKS),
 ): ProjectRepository {
   const baseRepo = createBaseRepository<Project, ProjectInput>({
     store,
@@ -34,13 +34,18 @@ export function createProjectRepository(
     ...baseRepo,
 
     async getAllWithStats(): Promise<ProjectWithStats[]> {
-      const projects = await baseRepo.getAll();
-      const projectsWithStats: ProjectWithStats[] = [];
+      const [projects, allTasks] = await Promise.all([baseRepo.getAll(), taskStore.getAll()]);
 
-      for (const project of projects) {
-        const tasks = (await getTasksByProjectId(project.id)) as Task[];
-        projectsWithStats.push(calculateProjectStats(project, tasks));
+      const tasksByProject = new Map<string, Task[]>();
+      for (const task of allTasks) {
+        const list = tasksByProject.get(task.projectId) || [];
+        list.push(task);
+        tasksByProject.set(task.projectId, list);
       }
+
+      const projectsWithStats = projects.map((project) =>
+        calculateProjectStats(project, tasksByProject.get(project.id) || []),
+      );
 
       return sortByLastActivity(projectsWithStats);
     },

@@ -1,6 +1,5 @@
 'use client';
 
-import { isAfter, startOfDay } from 'date-fns';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -24,6 +23,7 @@ import { useProjectDetail } from '@/shared/hooks/useProjectDetail';
 import { useSwipeHint } from '@/shared/hooks/useSwipeHint';
 import { useTaskFiltering } from '@/shared/hooks/useTaskFiltering';
 import { useTasks } from '@/shared/hooks/useTasks';
+import { isOverdue } from '@/shared/lib/date-utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,11 +52,6 @@ interface PageProps {
 }
 
 type ProjectDialog = 'createTask' | 'editProject' | 'deleteProject' | 'deleteTask';
-
-function isOverdue(deadline: string): boolean {
-  const today = startOfDay(new Date());
-  return isAfter(today, new Date(deadline));
-}
 
 export default function ProjectDetailPage({ params }: PageProps) {
   const { id: projectId } = use(params);
