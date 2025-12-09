@@ -22,7 +22,6 @@ Task management application built with Next.js 15 and React 19.
 | **Tailwind CSS** | Rapid styling with utilities |
 | **shadcn/ui** | Accessible components on Radix UI |
 | **@dnd-kit** | Modern drag-and-drop, accessible |
-| **Framer Motion** | Smooth task animations |
 | **date-fns** | Lightweight date formatting |
 | **Biome** | Fast linting + formatting (replaces ESLint + Prettier) |
 | **fast-check** | Property-based testing |
@@ -192,18 +191,6 @@ test(shared/api): add property-based tests for repository
 
 **Allowed scopes:** `app`, `widgets`, `features/*`, `entities/*`, `shared/*`, `tests`, `deps`, `ci`
 
-## Bug Fixes Applied
-
-| Bug | Issue | Fix |
-|-----|-------|-----|
-| Mutation in toggle | Task object mutated directly | Create new object with spread |
-| Deadline order | `isToday()` checked before `isPast()` | Check `isPast()` first |
-| Reorder data loss | Completed tasks discarded when reordering pending | Preserve tasks not in reorder list |
-| State desync | `reorderTasks` didn't use repository result | Use returned task list to update state |
-| Null safety* | `title` access could crash on undefined | Added optional chaining `t.title?.toLowerCase()` |
-
-*Discovered via property-based testing with fast-check
-
 ## Custom Hooks
 
 Hooks are organized by layer following FSD:
@@ -211,11 +198,9 @@ Hooks are organized by layer following FSD:
 | Hook | Layer | Purpose |
 |------|-------|---------|
 | `useTaskPageHandlers` | app | Orchestrates page state, dialogs, handlers |
-| `useTaskLookupMaps` | widgets | O(1) task lookup via Map/Set |
-| `useDragActionDetector` | widgets | Determines drag action (toggle/reorder) |
-| `useDragOverlay` | widgets | Drag state & event handlers |
 | `useTasks` | shared | Core state + optimistic updates |
 | `useDialogState<T>` | shared | Generic dialog open/close + data |
+| `useDndSensors` | shared | DnD sensor configuration |
 | `useTaskNotifications` | shared | Centralized toast messages |
 
 ### TaskActions Type
@@ -246,10 +231,6 @@ src/
 │   └── providers.tsx               # Theme + Repository context
 │
 ├── widgets/task-board/
-│   ├── hooks/
-│   │   ├── useTaskLookupMaps.ts    # O(1) Map/Set lookups
-│   │   ├── useDragActionDetector.ts # Drag logic
-│   │   └── useDragOverlay.ts       # Drag state & handlers
 │   ├── task-board.tsx              # DnD board (presentational)
 │   ├── droppable-column.tsx        # Column with drop highlighting
 │   └── task-card-overlay.tsx       # Drag overlay
@@ -260,16 +241,15 @@ src/
 │   ├── delete-task/          # DeleteConfirm dialog
 │   ├── toggle-task/          # TaskCheckbox
 │   ├── filter-tasks/         # SearchBar + FilterDropdown
-│   ├── reorder-tasks/        # SortableTaskList
 │   └── toggle-theme/         # ThemeSwitch
 │
 ├── entities/task/
-│   ├── model/types.ts        # Task, TaskActions interfaces
-│   └── ui/                   # TaskCard, SortableTaskCard
+│   ├── model/types.ts        # TaskActions interface
+│   └── ui/                   # SortableTaskCard, TaskCardContent
 │
 └── shared/
     ├── api/                  # task-repository.ts
-    ├── hooks/                # useTasks, useDialogState, useTaskNotifications
+    ├── hooks/                # useTasks, useDialogState, useDndSensors, useTaskNotifications
     ├── lib/                  # utils, formatters, storage/
     └── ui/                   # shadcn components
 ```
@@ -281,14 +261,16 @@ Two testing strategies: **unit tests** + **property-based tests** (fast-check).
 ```
 __tests__/
 ├── shared/api/
-│   ├── task-repository.test.ts           # Unit: CRUD operations
-│   └── task-repository.property.test.ts  # Property: ID uniqueness, toggle involution
+│   └── task-repository.test.ts           # Unit: CRUD operations
 ├── shared/lib/
 │   ├── formatters.test.ts                # Unit: date formatting
 │   ├── formatters.property.test.ts       # Property: format consistency
 │   ├── utils.property.test.ts            # Property: cn() idempotence, associativity
-│   └── filter-utils.property.test.ts     # Property: filter monotonicity, null safety
-└── features/filter-tasks/filter.test.ts  # Unit: search + status filter
+│   ├── filter-utils.property.test.ts     # Property: filter monotonicity, null safety
+│   └── storage/
+│       └── local-storage.adapter.test.ts # Unit: localStorage adapter
+└── test-utils/
+    └── factories.ts                      # Shared test factories
 ```
 
 ### Property-Based Testing
@@ -311,7 +293,6 @@ it('toggle is an involution (double toggle = original)', async () => {
 - `cn()`: idempotence, associativity, Tailwind conflict resolution
 - `formatDeadline()`: null handling, past/future consistency
 - `isOverdue()`: boolean return, temporal correctness
-- Repository: ID uniqueness, toggle involution, reorder preserves tasks
 - Filters: monotonicity (never increases), case-insensitivity
 
 Run with `pnpm test`.
@@ -320,9 +301,9 @@ Run with `pnpm test`.
 
 | File | Purpose |
 |------|---------|
-| `biome.json` | Linting + formatting rules |
-| `commitlint.config.js` | Commit message validation |
-| `.editorconfig` | Editor settings (UTF-8, LF, 2-space indent) |
+| `config/biome.json` | Linting + formatting rules |
+| `config/commitlint.config.js` | Commit message validation |
+| `config/knip.json` | Dead code detection config |
 | `tsconfig.json` | TypeScript strict mode + path aliases |
 | `tailwind.config.ts` | Theme with CSS variables |
 
