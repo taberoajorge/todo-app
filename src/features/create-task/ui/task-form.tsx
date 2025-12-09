@@ -88,14 +88,12 @@ export function TaskForm({ onSubmit, editingTask, onCancel }: TaskFormProps) {
     { error: null, success: false },
   );
 
-  // Focus title input on mount and when editing starts
   useEffect(() => {
     if (editingTask) {
       titleRef.current?.focus();
     }
   }, [editingTask]);
 
-  // Keyboard shortcut: Ctrl/Cmd + N to focus
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {

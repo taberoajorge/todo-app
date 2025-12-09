@@ -6,18 +6,27 @@ import { Checkbox } from '@/shared/ui/checkbox';
 interface TaskCheckboxProps {
   id: string;
   checked: boolean;
-  onToggle: (id: string) => void;
+  onToggle?: (id: string) => void;
   label: string;
   className?: string;
+  disabled?: boolean;
 }
 
-export function TaskCheckbox({ id, checked, onToggle, label, className }: TaskCheckboxProps) {
+export function TaskCheckbox({
+  id,
+  checked,
+  onToggle,
+  label,
+  className,
+  disabled = false,
+}: TaskCheckboxProps) {
   return (
     <Checkbox
       checked={checked}
-      onCheckedChange={() => onToggle(id)}
-      className={cn('h-5 w-5', className)}
+      onCheckedChange={onToggle ? () => onToggle(id) : undefined}
+      className={cn('mt-0.5 h-5 w-5', className)}
       aria-label={`Mark "${label}" as ${checked ? 'pending' : 'completed'}`}
+      disabled={disabled}
     />
   );
 }
