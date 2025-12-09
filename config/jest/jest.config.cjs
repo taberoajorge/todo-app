@@ -20,6 +20,9 @@ const config = {
     '<rootDir>/.next/',
     '<rootDir>/__tests__/test-utils/',
   ],
+  transformIgnorePatterns: [
+    '/node_modules/(?!(uuid)/)',
+  ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',

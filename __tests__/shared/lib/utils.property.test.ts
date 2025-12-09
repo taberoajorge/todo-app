@@ -63,11 +63,15 @@ describe('Utils (cn) Property-Based Tests', () => {
               [class2]: cond2,
             });
 
-            // If both conditions are true and classes are different, both should be in result
-            if (cond1 && cond2 && class1 !== class2) {
+            // When keys are equal, JS object takes the last value
+            if (class1 === class2) {
+              // Only cond2 matters because it overwrites cond1
+              return cond2 ? result === class2 : result === '';
+            }
+
+            // Keys are different
+            if (cond1 && cond2) {
               return result.includes(class1) && result.includes(class2);
-            } else if (cond1 && cond2 && class1 === class2) {
-              return result === class1;
             } else if (cond1) {
               return result === class1;
             } else if (cond2) {
