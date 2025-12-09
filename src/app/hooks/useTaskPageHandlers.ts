@@ -5,17 +5,12 @@ import type { TaskActions } from '@/entities/task';
 import type { Task, TaskInput } from '@/shared/api';
 import { useDialogState, useTaskNotifications, useTasks } from '@/shared/hooks';
 
-/**
- * Hook that encapsulates all task page handlers and state management.
- * Combines useTasks, dialog states, and notifications into a single interface.
- */
 export function useTaskPageHandlers() {
   const tasks = useTasks();
   const notifications = useTaskNotifications();
   const editDialog = useDialogState<Task>();
   const deleteDialog = useDialogState<Task>();
 
-  // Memoized Map for O(1) task lookups
   const tasksById = useMemo(
     () => new Map([...tasks.pendingTasks, ...tasks.completedTasks].map((t) => [t.id, t])),
     [tasks.pendingTasks, tasks.completedTasks],
@@ -91,30 +86,21 @@ export function useTaskPageHandlers() {
   );
 
   return {
-    // Task data
     pendingTasks: tasks.pendingTasks,
     completedTasks: tasks.completedTasks,
     totalPending: tasks.totalPending,
     totalCompleted: tasks.totalCompleted,
     isLoading: tasks.isLoading,
-
-    // Search and filter
     searchQuery: tasks.searchQuery,
     setSearchQuery: tasks.setSearchQuery,
     filterStatus: tasks.filterStatus,
     setFilterStatus: tasks.setFilterStatus,
-
-    // Dialog states
     editDialog,
     deleteDialog,
-
-    // Handlers
     handleAddTask,
     handleEditSave,
     handleDeleteConfirm,
     reorderTasks: tasks.reorderTasks,
-
-    // Task actions for TaskBoard
     taskActions,
   };
 }

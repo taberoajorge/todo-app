@@ -9,36 +9,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { TaskBoard } from '@/widgets/task-board';
 import { useTaskPageHandlers } from './hooks';
 
-/**
- * HomePage - Presentational component for the main task management page.
- * All business logic is extracted to useTaskPageHandlers hook.
- */
 export default function HomePage() {
   const {
-    // Task data
     pendingTasks,
     completedTasks,
     totalPending,
     totalCompleted,
     isLoading,
-
-    // Search and filter
     searchQuery,
     setSearchQuery,
     filterStatus,
     setFilterStatus,
-
-    // Dialog states
     editDialog,
     deleteDialog,
-
-    // Handlers
     handleAddTask,
     handleEditSave,
     handleDeleteConfirm,
     reorderTasks,
-
-    // Task actions
     taskActions,
   } = useTaskPageHandlers();
 
