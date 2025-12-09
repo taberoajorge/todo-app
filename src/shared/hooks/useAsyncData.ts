@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseAsyncDataOptions<T> {
   fetchFn: () => Promise<T>;
@@ -15,10 +15,6 @@ interface UseAsyncDataReturn<T> {
   setData: React.Dispatch<React.SetStateAction<T | null>>;
 }
 
-/**
- * Hook for loading async data with loading and error states.
- * Fetches data on mount and provides a refetch function.
- */
 export function useAsyncData<T>({
   fetchFn,
   onError,
@@ -27,20 +23,28 @@ export function useAsyncData<T>({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const fetchFnRef = useRef(fetchFn);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    fetchFnRef.current = fetchFn;
+    onErrorRef.current = onError;
+  });
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchFn();
+      const result = await fetchFnRef.current();
       setData(result);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error');
       setError(error);
-      onError?.(err);
+      onErrorRef.current?.(err);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchFn, onError]);
+  }, []);
 
   useEffect(() => {
     fetchData();
