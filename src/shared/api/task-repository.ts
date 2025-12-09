@@ -1,90 +1,67 @@
-import type { ITaskStorage } from '@/shared/lib/storage';
+import { DEFAULTS, STORES } from '@/shared/config/constants';
+import { isToday } from '@/shared/lib/date-utils';
+import { createStore, type IDBStore } from '@/shared/lib/storage/indexeddb.adapter';
+import { type BaseRepository, createBaseRepository } from './base-repository';
+import type { Task, TaskInput, TaskStatus } from './types';
 
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  /** Task due date in ISO 8601 format. */
-  deadline?: string;
-  completed: boolean;
-  createdAt: string;
+export interface TaskRepository extends BaseRepository<Task, TaskInput> {
+  getByProjectId(projectId: string): Promise<Task[]>;
+  getByStatus(status: TaskStatus): Promise<Task[]>;
+  getTodayTasks(): Promise<Task[]>;
+  updateStatus(id: string, status: TaskStatus): Promise<Task | undefined>;
 }
 
-export type TaskInput = Pick<Task, 'title' | 'description' | 'deadline'>;
+export function createTaskRepository(
+  store: IDBStore<Task> = createStore<Task>(STORES.TASKS),
+): TaskRepository {
+  const baseRepo = createBaseRepository<Task, TaskInput>({
+    store,
+    createEntity: (input, id, createdAt) => ({
+      id,
+      createdAt,
+      title: input.title.trim() || DEFAULTS.TASK_TITLE,
+      description: input.description?.trim(),
+      deadline: input.deadline,
+      status: 'todo',
+      projectId: input.projectId,
+    }),
+    mergeUpdate: (existing, input) => ({
+      ...existing,
+      ...input,
+      title: input.title?.trim() || existing.title,
+      description: input.description?.trim(),
+    }),
+  });
 
-export function createTaskRepository(storage: ITaskStorage) {
   return {
-    async getAll(): Promise<Task[]> {
-      return storage.getAll();
+    ...baseRepo,
+
+    async getByProjectId(projectId: string): Promise<Task[]> {
+      const all = await baseRepo.getAll();
+      return all.filter((t) => t.projectId === projectId);
     },
 
-    async getById(id: string): Promise<Task | undefined> {
-      const tasks = await storage.getAll();
-      return tasks.find((t) => t.id === id);
+    async getByStatus(status: TaskStatus): Promise<Task[]> {
+      const all = await baseRepo.getAll();
+      return all.filter((t) => t.status === status);
     },
 
-    async create(input: TaskInput): Promise<Task> {
-      const tasks = await storage.getAll();
-      const newTask: Task = {
-        id: crypto.randomUUID(),
-        ...input,
-        completed: false,
-        createdAt: new Date().toISOString(),
+    async getTodayTasks(): Promise<Task[]> {
+      const all = await baseRepo.getAll();
+      return all.filter((t) => isToday(t.deadline));
+    },
+
+    async updateStatus(id: string, status: TaskStatus): Promise<Task | undefined> {
+      const existing = await store.getById(id);
+      if (!existing) return undefined;
+
+      const updated: Task = {
+        ...existing,
+        status,
       };
-      await storage.save([...tasks, newTask]);
-      return newTask;
-    },
 
-    async update(
-      id: string,
-      updates: Partial<Omit<Task, 'id' | 'createdAt'>>,
-    ): Promise<Task | undefined> {
-      const tasks = await storage.getAll();
-      const index = tasks.findIndex((t) => t.id === id);
-      if (index === -1) return undefined;
-
-      const updated = { ...tasks[index], ...updates };
-      tasks[index] = updated;
-      await storage.save(tasks);
+      await store.update(updated);
       return updated;
-    },
-
-    async delete(id: string): Promise<boolean> {
-      const tasks = await storage.getAll();
-      const filtered = tasks.filter((t) => t.id !== id);
-      if (filtered.length === tasks.length) return false;
-      await storage.save(filtered);
-      return true;
-    },
-
-    async toggle(id: string): Promise<Task | undefined> {
-      const tasks = await storage.getAll();
-      const index = tasks.findIndex((t) => t.id === id);
-      if (index === -1) return undefined;
-
-      const toggled: Task = { ...tasks[index], completed: !tasks[index].completed };
-      const updatedTasks = [...tasks];
-      updatedTasks[index] = toggled;
-      await storage.save(updatedTasks);
-      return toggled;
-    },
-
-    /** Reorders pending tasks. Tasks not in taskIds are preserved at the end. */
-    async reorder(taskIds: string[]): Promise<Task[]> {
-      const tasks = await storage.getAll();
-      const taskMap = new Map(tasks.map((t) => [t.id, t]));
-      const reorderedIds = new Set(taskIds);
-      const reordered = taskIds.map((id) => taskMap.get(id)).filter(Boolean) as Task[];
-      const preserved = tasks.filter((t) => !reorderedIds.has(t.id));
-      const allTasks = [...reordered, ...preserved];
-      await storage.save(allTasks);
-      return allTasks;
-    },
-
-    async clear(): Promise<void> {
-      await storage.clear();
     },
   };
 }
-
-export type TaskRepository = ReturnType<typeof createTaskRepository>;
