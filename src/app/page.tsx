@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useTasks } from '@/shared/hooks';
 import type { Task, TaskInput } from '@/shared/api';
 import { TaskForm } from '@/features/create-task';
 import { EditTaskDialog } from '@/features/edit-task';
 import { DeleteConfirm } from '@/features/delete-task';
 import { ThemeSwitch } from '@/features/toggle-theme';
-import { SearchBar } from '@/features/filter-tasks';
+import { SearchBar, FilterDropdown } from '@/features/filter-tasks';
 import { TaskBoard } from '@/widgets/task-board';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 
@@ -15,9 +16,13 @@ export default function HomePage() {
   const {
     pendingTasks,
     completedTasks,
+    totalPending,
+    totalCompleted,
     isLoading,
     searchQuery,
     setSearchQuery,
+    filterStatus,
+    setFilterStatus,
     addTask,
     updateTask,
     deleteTask,
@@ -33,9 +38,13 @@ export default function HomePage() {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Handlers
+  // Handlers with toast notifications
   const handleAddTask = async (input: TaskInput) => {
-    return addTask(input);
+    const task = await addTask(input);
+    toast.success('Task created', {
+      description: `"${task.title}" has been added to your list.`,
+    });
+    return task;
   };
 
   const handleEditClick = (task: Task) => {
@@ -45,11 +54,17 @@ export default function HomePage() {
 
   const handleEditSave = async (id: string, input: TaskInput) => {
     await updateTask(id, input);
+    toast.success('Task updated', {
+      description: `"${input.title}" has been updated.`,
+    });
   };
 
   const handleDeleteClick = (task: Task) => {
     if (task.completed) {
       deleteTask(task.id);
+      toast.success('Task deleted', {
+        description: `"${task.title}" has been removed.`,
+      });
     } else {
       setTaskToDelete(task);
       setIsDeleteDialogOpen(true);
@@ -57,8 +72,25 @@ export default function HomePage() {
   };
 
   const handleDeleteConfirm = (id: string) => {
+    const task = taskToDelete;
     deleteTask(id);
     setTaskToDelete(null);
+    if (task) {
+      toast.success('Task deleted', {
+        description: `"${task.title}" has been removed.`,
+      });
+    }
+  };
+
+  const handleToggle = async (id: string) => {
+    await toggleTask(id);
+    const task = [...pendingTasks, ...completedTasks].find((t) => t.id === id);
+    if (task) {
+      const newStatus = !task.completed;
+      toast.success(newStatus ? 'Task completed' : 'Task reopened', {
+        description: `"${task.title}" marked as ${newStatus ? 'completed' : 'pending'}.`,
+      });
+    }
   };
 
   if (isLoading) {
@@ -95,16 +127,24 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Search */}
-        <div className="mb-6">
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        {/* Search and Filter */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          </div>
+          <FilterDropdown
+            value={filterStatus}
+            onChange={setFilterStatus}
+            pendingCount={totalPending}
+            completedCount={totalCompleted}
+          />
         </div>
 
         {/* Task Board with Drag & Drop */}
         <TaskBoard
           pendingTasks={pendingTasks}
           completedTasks={completedTasks}
-          onToggle={toggleTask}
+          onToggle={handleToggle}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
           onReorder={reorderTasks}

@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '@/shared/config/constants';
 import type { ITaskStorage } from './types';
-import type { Task } from '@/entities/task';
+import type { Task } from '@/shared/api/task-repository';
 
 /**
  * LocalStorage adapter implementing ITaskStorage

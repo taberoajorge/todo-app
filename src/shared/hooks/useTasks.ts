@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useMemo, useContext, startTransition,
 import { useOptimistic } from 'react';
 import type { Task, TaskInput, TaskRepository } from '@/shared/api/task-repository';
 
+export type FilterStatus = 'all' | 'pending' | 'completed';
+
 // Repository context for dependency injection
 export const RepositoryContext = createContext<TaskRepository | null>(null);
 
@@ -25,6 +27,7 @@ export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
 
   // Optimistic state for instant UI feedback
   const [optimisticTasks, setOptimisticTask] = useOptimistic(
@@ -58,18 +61,31 @@ export function useTasks() {
     loadTasks();
   }, [repository]);
 
-  // Filtered tasks based on search query
+  // Filtered tasks based on search query and status filter
   const filteredTasks = useMemo(() => {
-    if (!searchQuery.trim()) return optimisticTasks;
-    const query = searchQuery.toLowerCase();
-    return optimisticTasks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(query) ||
-        t.description?.toLowerCase().includes(query)
-    );
-  }, [optimisticTasks, searchQuery]);
+    let result = optimisticTasks;
 
-  // Derived state
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(query) ||
+          t.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply status filter
+    if (filterStatus === 'pending') {
+      result = result.filter((t) => !t.completed);
+    } else if (filterStatus === 'completed') {
+      result = result.filter((t) => t.completed);
+    }
+
+    return result;
+  }, [optimisticTasks, searchQuery, filterStatus]);
+
+  // Derived state (for display in separate columns)
   const pendingTasks = useMemo(
     () => filteredTasks.filter((t) => !t.completed),
     [filteredTasks]
@@ -78,6 +94,17 @@ export function useTasks() {
   const completedTasks = useMemo(
     () => filteredTasks.filter((t) => t.completed),
     [filteredTasks]
+  );
+
+  // Counts (unfiltered for badges)
+  const totalPending = useMemo(
+    () => optimisticTasks.filter((t) => !t.completed).length,
+    [optimisticTasks]
+  );
+
+  const totalCompleted = useMemo(
+    () => optimisticTasks.filter((t) => t.completed).length,
+    [optimisticTasks]
   );
 
   // Actions
@@ -135,9 +162,13 @@ export function useTasks() {
     tasks: optimisticTasks,
     pendingTasks,
     completedTasks,
+    totalPending,
+    totalCompleted,
     isLoading,
     searchQuery,
     setSearchQuery,
+    filterStatus,
+    setFilterStatus,
     addTask,
     updateTask,
     deleteTask,

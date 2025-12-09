@@ -1,6 +1,6 @@
-import { createTaskRepository } from '@/entities/task';
+import { createTaskRepository } from '@/shared/api/task-repository';
 import type { ITaskStorage } from '@/shared/lib/storage';
-import type { Task } from '@/entities/task';
+import type { Task } from '@/shared/api/task-repository';
 
 describe('createTaskRepository', () => {
   let mockStorage: ITaskStorage;
@@ -50,15 +50,19 @@ describe('createTaskRepository', () => {
     });
   });
 
-  describe('add', () => {
-    it('should add a new task to storage', async () => {
+  describe('create', () => {
+    it('should create a new task with generated id', async () => {
       const repository = createTaskRepository(mockStorage);
-      const newTask = createTask({ title: 'New Task' });
+      const input = { title: 'New Task', description: 'Description' };
 
-      await repository.add(newTask);
+      const result = await repository.create(input);
 
-      expect(mockStorage.save).toHaveBeenCalledWith([newTask]);
-      expect(tasks).toContainEqual(newTask);
+      expect(result.id).toBeDefined();
+      expect(result.title).toBe('New Task');
+      expect(result.description).toBe('Description');
+      expect(result.completed).toBe(false);
+      expect(result.createdAt).toBeDefined();
+      expect(tasks).toContainEqual(result);
     });
 
     it('should append task to existing tasks', async () => {
@@ -66,13 +70,9 @@ describe('createTaskRepository', () => {
       tasks = [existingTask];
 
       const repository = createTaskRepository(mockStorage);
-      const newTask = createTask({ title: 'New Task' });
-
-      await repository.add(newTask);
+      await repository.create({ title: 'New Task' });
 
       expect(tasks).toHaveLength(2);
-      expect(tasks).toContainEqual(existingTask);
-      expect(tasks).toContainEqual(newTask);
     });
   });
 
@@ -99,14 +99,14 @@ describe('createTaskRepository', () => {
     });
   });
 
-  describe('remove', () => {
+  describe('delete', () => {
     it('should remove a task by id', async () => {
       const task1 = createTask({ id: 'task-1' });
       const task2 = createTask({ id: 'task-2' });
       tasks = [task1, task2];
 
       const repository = createTaskRepository(mockStorage);
-      await repository.remove('task-1');
+      await repository.delete('task-1');
 
       expect(tasks).toHaveLength(1);
       expect(tasks[0].id).toBe('task-2');

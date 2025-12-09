@@ -22,6 +22,7 @@ This document serves as the source of truth for any AI code agent working on thi
 | date-fns | 3.x | Date Formatting |
 | Framer Motion | 11.x | Animations |
 | @dnd-kit | latest | Drag & Drop |
+| next-themes | latest | Dark Mode |
 | Biome | latest | Linting & Formatting |
 | Jest | latest | Testing |
 | pnpm | 9.15.0+ | Package Manager |
@@ -34,8 +35,9 @@ This document serves as the source of truth for any AI code agent working on thi
 
 ```
 app/        -> Application entry, providers, global styles
+widgets/    -> Composite UI blocks (TaskBoard)
 features/   -> User interactions (create-task, edit-task, etc.)
-entities/   -> Business entities (task)
+entities/   -> Business entities (task UI components)
 shared/     -> Reusable code (ui, hooks, lib, api)
 ```
 
@@ -44,15 +46,16 @@ shared/     -> Reusable code (ui, hooks, lib, api)
 These rules MUST be followed to maintain architectural integrity:
 
 1. **Lower layers CANNOT import from upper layers**
-2. `features/` can import from: `entities/`, `shared/`
-3. `entities/` can import from: `shared/`
-4. `shared/` cannot import from any other layer
-5. Same-layer imports are allowed within a slice
+2. `widgets/` can import from: `features/`, `entities/`, `shared/`
+3. `features/` can import from: `entities/`, `shared/`
+4. `entities/` can import from: `shared/`
+5. `shared/` cannot import from any other layer
+6. Same-layer imports are allowed within a slice
 
 ```
-app/ -----> features/ -----> entities/ -----> shared/
-  |             |                |
-  +-------------+----------------+----------> shared/
+app/ --> widgets/ --> features/ --> entities/ --> shared/
+  |         |             |              |
+  +---------+-------------+--------------+--------> shared/
 ```
 
 ### Folder Structure
@@ -60,71 +63,87 @@ app/ -----> features/ -----> entities/ -----> shared/
 ```
 src/
 ├── app/                          # Next.js App Router
-│   ├── layout.tsx                # Root layout
+│   ├── layout.tsx                # Root layout with providers
 │   ├── page.tsx                  # Main page
+│   ├── providers.tsx             # Context providers (Theme, Repository)
 │   └── globals.css               # Global styles + CSS variables
 │
-├── entities/                     # Business domain
+├── widgets/                      # Composite UI blocks
+│   └── task-board/
+│       ├── index.ts              # Public API
+│       ├── task-board.tsx        # Main board with DnD between columns
+│       ├── droppable-column.tsx  # Droppable column wrapper
+│       └── task-card-overlay.tsx # Drag overlay component
+│
+├── entities/                     # Business domain UI
 │   └── task/
 │       ├── index.ts              # Public API exports
-│       ├── model/
-│       │   └── types.ts          # Task interface
 │       └── ui/
-│           ├── TaskCard.tsx      # Task card component
-│           └── TaskList.tsx      # Task list component
+│           ├── task-card.tsx     # Task card component
+│           ├── task-list.tsx     # Task list component
+│           ├── sortable-task-card.tsx  # Draggable task card
+│           └── sortable-task-list.tsx  # Sortable list with DnD
 │
 ├── features/                     # User interactions
 │   ├── create-task/
 │   │   ├── index.ts
 │   │   └── ui/
-│   │       └── TaskForm.tsx
+│   │       └── task-form.tsx
 │   ├── edit-task/
 │   │   ├── index.ts
 │   │   └── ui/
-│   │       └── EditTaskDialog.tsx
+│   │       └── edit-task-dialog.tsx
 │   ├── delete-task/
 │   │   ├── index.ts
 │   │   └── ui/
-│   │       └── DeleteConfirmDialog.tsx
+│   │       └── delete-confirm.tsx
 │   ├── toggle-task/
 │   │   ├── index.ts
 │   │   └── ui/
-│   │       └── TaskCheckbox.tsx
+│   │       └── task-checkbox.tsx
 │   ├── filter-tasks/
 │   │   ├── index.ts
 │   │   └── ui/
-│   │       ├── SearchBar.tsx
-│   │       └── FilterDropdown.tsx
+│   │       ├── search-bar.tsx
+│   │       └── filter-dropdown.tsx
 │   ├── reorder-tasks/
 │   │   ├── index.ts
 │   │   └── ui/
-│   │       └── SortableTaskList.tsx
+│   │       └── sortable-task-list.tsx
 │   └── toggle-theme/
 │       ├── index.ts
 │       └── ui/
-│           └── ThemeToggle.tsx
+│           └── theme-switch.tsx
 │
 └── shared/                       # Reusable foundation
     ├── api/
-    │   ├── index.ts
-    │   ├── storage.ts            # IStorage interface + LocalStorageAdapter
-    │   └── task-repository.ts    # Repository pattern implementation
+    │   ├── index.ts              # Exports Task, TaskInput, TaskRepository
+    │   └── task-repository.ts    # Repository pattern + types
     ├── hooks/
     │   ├── index.ts
     │   ├── useTasks.ts           # Core task state with useOptimistic
-    │   └── useTheme.ts           # Dark mode hook
+    │   ├── useTheme.ts           # Dark mode hook
+    │   └── use-local-storage.ts  # Generic localStorage hook
     ├── lib/
     │   ├── utils.ts              # cn() helper
-    │   └── formatters.ts         # Date formatting utilities
+    │   ├── formatters.ts         # Date formatting utilities
+    │   └── storage/
+    │       ├── index.ts
+    │       ├── types.ts          # ITaskStorage interface
+    │       └── local-storage.adapter.ts
     ├── ui/                       # shadcn/ui components
     │   ├── button.tsx
     │   ├── input.tsx
+    │   ├── textarea.tsx
+    │   ├── label.tsx
     │   ├── checkbox.tsx
     │   ├── dialog.tsx
+    │   ├── alert-dialog.tsx
     │   ├── card.tsx
-    │   └── dropdown-menu.tsx
+    │   ├── dropdown-menu.tsx
+    │   └── tooltip.tsx
     └── config/
-        └── constants.ts          # App constants
+        └── constants.ts          # App constants (storage keys, limits)
 ```
 
 ---
@@ -135,10 +154,10 @@ src/
 
 | Type | Convention | Example |
 |------|------------|---------|
-| Components | PascalCase | `TaskCard.tsx` |
+| Components | kebab-case | `task-card.tsx` |
 | Hooks | camelCase with `use` prefix | `useTasks.ts` |
-| Types | PascalCase | `types.ts` |
-| Utilities | camelCase | `formatters.ts` |
+| Types | PascalCase in files | `types.ts` |
+| Utilities | kebab-case | `formatters.ts` |
 | Indexes | lowercase | `index.ts` |
 
 ### Component Pattern
@@ -147,6 +166,7 @@ src/
 'use client'; // Only add when using client-side features
 
 import { cn } from '@/shared/lib/utils';
+import type { Task } from '@/shared/api';
 
 interface TaskCardProps {
   task: Task;
@@ -164,21 +184,23 @@ export function TaskCard({ task, className }: TaskCardProps) {
 
 ### Public API Pattern
 
-Each feature/entity MUST export via `index.ts`:
+Each feature/entity/widget MUST export via `index.ts`:
 
 ```typescript
 // features/create-task/index.ts
-export { TaskForm } from './ui/TaskForm';
+export { TaskForm } from './ui/task-form';
 ```
 
 **CORRECT import:**
 ```typescript
 import { TaskForm } from '@/features/create-task';
+import type { Task } from '@/shared/api';
+import { useTasks } from '@/shared/hooks';
 ```
 
 **INCORRECT import:**
 ```typescript
-import { TaskForm } from '@/features/create-task/ui/TaskForm'; // NEVER do this
+import { TaskForm } from '@/features/create-task/ui/task-form'; // NEVER do this
 ```
 
 ---
@@ -188,7 +210,7 @@ import { TaskForm } from '@/features/create-task/ui/TaskForm'; // NEVER do this
 ### Core Task Type
 
 ```typescript
-// entities/task/model/types.ts
+// shared/api/task-repository.ts
 export interface Task {
   id: string;
   title: string;
@@ -210,21 +232,24 @@ export type TaskInput = Pick<Task, 'title' | 'description' | 'deadline'>;
 The data layer uses the Repository Pattern for abstraction:
 
 ```typescript
-// shared/api/storage.ts
-export interface IStorage<T> {
-  getItem(key: string): T | null;
-  setItem(key: string, value: T): void;
-  removeItem(key: string): void;
+// shared/lib/storage/types.ts
+export interface ITaskStorage {
+  getAll(): Promise<Task[]>;
+  save(tasks: Task[]): Promise<void>;
+  clear(): Promise<void>;
 }
 
 // shared/api/task-repository.ts
-export interface TaskRepository {
-  getAll(): Task[];
-  getById(id: string): Task | undefined;
-  create(task: TaskInput): Task;
-  update(id: string, updates: Partial<Task>): Task | undefined;
-  delete(id: string): boolean;
-  reorder(taskIds: string[]): Task[];
+export function createTaskRepository(storage: ITaskStorage) {
+  return {
+    getAll(): Promise<Task[]>;
+    getById(id: string): Promise<Task | undefined>;
+    create(input: TaskInput): Promise<Task>;
+    update(id: string, updates: Partial<Task>): Promise<Task | undefined>;
+    delete(id: string): Promise<boolean>;
+    toggle(id: string): Promise<Task | undefined>;
+    reorder(taskIds: string[]): Promise<Task[]>;
+  };
 }
 ```
 
@@ -237,15 +262,26 @@ Use these new React 19 hooks:
 | `useActionState` | Form handling | TaskForm submit |
 | `useFormStatus` | Button pending state | SubmitButton |
 | `useOptimistic` | Instant UI updates | Toggle task |
-| `useTransition` | Non-blocking updates | All mutations |
+| `startTransition` | Non-blocking updates | All mutations |
 
 **Example - useOptimistic:**
 ```typescript
-const [optimisticTasks, addOptimistic] = useOptimistic(
+const [optimisticTasks, setOptimisticTask] = useOptimistic(
   tasks,
-  (state, action: { type: 'toggle'; id: string }) =>
-    state.map(t => t.id === action.id ? { ...t, completed: !t.completed } : t)
+  (state, action: { type: 'toggle' | 'delete'; id: string }) => {
+    switch (action.type) {
+      case 'toggle':
+        return state.map(t => t.id === action.id ? { ...t, completed: !t.completed } : t);
+      case 'delete':
+        return state.filter(t => t.id !== action.id);
+    }
+  }
 );
+
+// Usage with startTransition
+startTransition(() => {
+  setOptimisticTask({ type: 'toggle', id });
+});
 ```
 
 ---
@@ -302,14 +338,17 @@ Mobile-first breakpoints:
 
 ### File Location
 
-Tests go in `__tests__/` folders adjacent to the code:
+Tests go in `__tests__/` folders at the project root:
 
 ```
-shared/
-├── api/
-│   ├── task-repository.ts
-│   └── __tests__/
-│       └── task-repository.test.ts
+__tests__/
+├── entities/
+│   └── task/
+│       └── selectors.test.ts
+└── shared/
+    └── lib/
+        └── storage/
+            └── local-storage.adapter.test.ts
 ```
 
 ### Testing Stack
@@ -344,13 +383,13 @@ pnpm test:watch   # Watch mode
 Always handle SSR/client mismatch for localStorage:
 
 ```typescript
-const [isHydrated, setIsHydrated] = useState(false);
+const [isLoading, setIsLoading] = useState(true);
 
 useEffect(() => {
-  setIsHydrated(true);
+  loadTasks().finally(() => setIsLoading(false));
 }, []);
 
-if (!isHydrated) return <Loading />;
+if (isLoading) return <Loading />;
 ```
 
 ### ID Generation
@@ -367,6 +406,16 @@ const id = crypto.randomUUID();
 - Format with date-fns for display
 - Use `datetime-local` input type for forms
 
+### Task Limits
+
+```typescript
+// shared/config/constants.ts
+export const TASK_LIMITS = {
+  TITLE_MAX: 100,
+  DESCRIPTION_MAX: 500,
+} as const;
+```
+
 ---
 
 ## DO's and DON'Ts
@@ -379,12 +428,15 @@ const id = crypto.randomUUID();
 - Use React 19 hooks for forms and optimistic updates
 - Keep components small and focused
 - Use TypeScript strict mode
+- Import types from `@/shared/api`
+- Import hooks from `@/shared/hooks`
 
 ### DON'T
 
-- Import directly from feature/entity internals
+- Import directly from feature/entity/widget internals
 - Skip the repository pattern for data access
 - Add client directives unnecessarily
 - Mix business logic in UI components
 - Use inline styles (use Tailwind)
 - Ignore accessibility (use shadcn/ui primitives)
+- Import Task type from entities (use shared/api)

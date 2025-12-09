@@ -5,8 +5,8 @@ import { Card, CardContent } from '@/shared/ui/card';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Button } from '@/shared/ui/button';
 import { cn } from '@/shared/lib/utils';
-import type { Task } from '../model/types';
-import { formatDeadline, isOverdue } from '../lib/format-deadline';
+import type { Task } from '@/shared/api';
+import { formatDeadline, isOverdue } from '@/shared/lib/formatters';
 
 interface TaskCardProps {
   task: Task;

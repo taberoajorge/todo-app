@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { ClipboardList } from 'lucide-react';
-import type { Task } from '../model/types';
+import type { Task } from '@/shared/api';
 import { TaskCard } from './task-card';
 
 interface TaskListProps {

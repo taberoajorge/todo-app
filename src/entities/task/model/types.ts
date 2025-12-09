@@ -1,16 +1,4 @@
-/**
- * Core Task type definition
- */
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  deadline?: string;
-  completed: boolean;
-  createdAt: string;
-}
+// Task types are defined in @/shared/api/task-repository
+// Re-exported from entities/task/index.ts for convenience
+export type { Task, TaskInput } from '@/shared/api/task-repository';
 
-/**
- * Input type for creating/editing tasks
- */
-export type TaskInput = Pick<Task, 'title' | 'description' | 'deadline'>;

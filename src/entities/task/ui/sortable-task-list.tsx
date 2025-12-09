@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import { ClipboardList } from 'lucide-react';
-import type { Task } from '../model/types';
+import type { Task } from '@/shared/api';
 import { SortableTaskCard } from './sortable-task-card';
 
 interface SortableTaskListProps {
