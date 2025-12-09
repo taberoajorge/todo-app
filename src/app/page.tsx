@@ -168,14 +168,16 @@ export default function HomePage() {
                 const textColor = getContrastColor(baseColor, isDark);
 
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={task.id}
-                    className="carousel-item min-w-[180px] max-w-[180px] rounded-[10px] shadow-md snap-start cursor-pointer transition-transform hover:scale-[1.02] text-left"
+                    className="carousel-item relative min-w-[180px] max-w-[180px] rounded-[10px] shadow-md snap-start transition-transform hover:scale-[1.02]"
                     style={{ backgroundColor: cardColor }}
-                    onClick={() => handleTaskClick(task)}
                   >
-                    <div className="p-4">
+                    <button
+                      type="button"
+                      className="w-full h-full p-4 text-left"
+                      onClick={() => handleTaskClick(task)}
+                    >
                       <div className="flex items-start justify-between mb-2">
                         {project && (
                           <p
@@ -185,37 +187,7 @@ export default function HomePage() {
                             {project.name}
                           </p>
                         )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1 -mr-1 rounded hover:bg-black/10"
-                          >
-                            <MoreVertical
-                              className="h-4 w-4"
-                              style={{ color: textColor, opacity: 0.8 }}
-                            />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(task, 'in_progress');
-                              }}
-                            >
-                              <Play className="mr-2 h-4 w-4" />
-                              Start Progress
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(task, 'done');
-                              }}
-                            >
-                              <Check className="mr-2 h-4 w-4" />
-                              Mark as Done
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="w-6" />
                       </div>
                       <h3 className="line-clamp-2 font-semibold" style={{ color: textColor }}>
                         {task.title}
@@ -227,8 +199,26 @@ export default function HomePage() {
                         <Clock className="h-3 w-3" />
                         <span>till {format(new Date(task.deadline), 'dd MMM yyyy')}</span>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="absolute top-3 right-3 p-1 rounded hover:bg-black/10">
+                        <MoreVertical
+                          className="h-4 w-4"
+                          style={{ color: textColor, opacity: 0.8 }}
+                        />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleStatusChange(task, 'in_progress')}>
+                          <Play className="mr-2 h-4 w-4" />
+                          Start Progress
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(task, 'done')}>
+                          <Check className="mr-2 h-4 w-4" />
+                          Mark as Done
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 );
               })}
             </div>
