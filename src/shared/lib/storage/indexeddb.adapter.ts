@@ -143,7 +143,7 @@ export function createStore<T extends { id: string }>(storeName: string): IDBSto
   };
 }
 
-export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
+async function getTasksByProjectId(projectId: string): Promise<Task[]> {
   if (typeof window === 'undefined') return [];
 
   try {
