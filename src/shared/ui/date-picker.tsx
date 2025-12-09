@@ -285,7 +285,7 @@ export function DatePicker({ value, onChange, minDate, className }: DatePickerPr
           )}
           onClick={() => setIsOpen(true)}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <Calendar className="mr-2 h-4 w-4" />
           {value ? format(value, 'PPP p') : 'Pick a date'}
         </Button>
         <Sheet open={isOpen} onOpenChange={setIsOpen}>

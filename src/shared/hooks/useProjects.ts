@@ -29,7 +29,6 @@ export function useProjects(): UseProjectsReturn {
     setData: setProjects,
   } = useAsyncData({
     fetchFn: () => repository.getAllWithStats(),
-    deps: [repository],
     onError: (error) => console.error('Failed to load projects:', error),
   });
 
