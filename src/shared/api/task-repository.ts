@@ -59,20 +59,31 @@ export function createTaskRepository(storage: ITaskStorage) {
 
     async toggle(id: string): Promise<Task | undefined> {
       const tasks = await storage.getAll();
-      const task = tasks.find((t) => t.id === id);
-      if (!task) return undefined;
+      const index = tasks.findIndex((t) => t.id === id);
+      if (index === -1) return undefined;
 
-      task.completed = !task.completed;
-      await storage.save(tasks);
-      return task;
+      const updatedTask = { ...tasks[index], completed: !tasks[index].completed };
+      const updatedTasks = [...tasks];
+      updatedTasks[index] = updatedTask;
+      await storage.save(updatedTasks);
+      return updatedTask;
     },
 
     async reorder(taskIds: string[]): Promise<Task[]> {
       const tasks = await storage.getAll();
       const taskMap = new Map(tasks.map((t) => [t.id, t]));
-      const ordered = taskIds.map((id) => taskMap.get(id)).filter(Boolean) as Task[];
-      await storage.save(ordered);
-      return ordered;
+      const taskIdsSet = new Set(taskIds);
+
+      // Reorder the specified tasks
+      const reorderedTasks = taskIds.map((id) => taskMap.get(id)).filter(Boolean) as Task[];
+
+      // Preserve tasks not included in the reorder (e.g., completed tasks)
+      const preservedTasks = tasks.filter((t) => !taskIdsSet.has(t.id));
+
+      // Combine: reordered tasks first, then preserved tasks
+      const allTasks = [...reorderedTasks, ...preservedTasks];
+      await storage.save(allTasks);
+      return allTasks;
     },
 
     async clear(): Promise<void> {

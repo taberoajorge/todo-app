@@ -152,7 +152,15 @@ export function useTasks() {
       await repository.reorder(orderedIds);
       setTasks((prev) => {
         const taskMap = new Map(prev.map((t) => [t.id, t]));
-        return orderedIds.map((id) => taskMap.get(id)).filter(Boolean) as Task[];
+        const orderedIdsSet = new Set(orderedIds);
+
+        // Reorder the specified tasks
+        const reorderedTasks = orderedIds.map((id) => taskMap.get(id)).filter(Boolean) as Task[];
+
+        // Preserve tasks not included in the reorder
+        const preservedTasks = prev.filter((t) => !orderedIdsSet.has(t.id));
+
+        return [...reorderedTasks, ...preservedTasks];
       });
     },
     [repository]

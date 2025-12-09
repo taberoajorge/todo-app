@@ -8,16 +8,18 @@ export function formatDeadline(deadline: string | undefined): string | null {
 
   const date = new Date(deadline);
 
+  // Check for overdue FIRST, before checking today/tomorrow
+  // This ensures past deadlines always show as overdue
+  if (isPast(date)) {
+    return `Overdue (${formatDistanceToNow(date, { addSuffix: true })})`;
+  }
+
   if (isToday(date)) {
     return `Today at ${format(date, 'h:mm a')}`;
   }
 
   if (isTomorrow(date)) {
     return `Tomorrow at ${format(date, 'h:mm a')}`;
-  }
-
-  if (isPast(date)) {
-    return `Overdue (${formatDistanceToNow(date, { addSuffix: true })})`;
   }
 
   return format(date, 'MMM d, yyyy h:mm a');
