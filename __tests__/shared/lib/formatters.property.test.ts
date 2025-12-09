@@ -182,23 +182,19 @@ describe('Formatters Property-Based Tests', () => {
     });
 
     it('should always return a boolean', () => {
+      const validDateString = fc
+        .date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') })
+        .filter((d) => !Number.isNaN(d.getTime()))
+        .map((d) => d.toISOString());
+
       fc.assert(
         fc.property(
-          fc.option(
-            fc.oneof(
-              fc
-                .date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') })
-                .map((d) => d.toISOString()),
-              fc.string(),
-            ),
-            { nil: undefined },
-          ),
+          fc.option(fc.oneof(validDateString, fc.string()), { nil: undefined }),
           (deadline) => {
             try {
               const result = isOverdue(deadline);
               return typeof result === 'boolean';
             } catch {
-              // If it throws, that's also a valid behavior to test
               return true;
             }
           },
