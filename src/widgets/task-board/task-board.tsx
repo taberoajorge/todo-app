@@ -7,22 +7,17 @@ import {
   type DragOverEvent,
   DragOverlay,
   type DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
 } from '@dnd-kit/core';
 import { restrictToWindowEdges } from '@dnd-kit/modifiers';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useState } from 'react';
 import { SortableTaskCard } from '@/entities/task';
 import type { Task } from '@/shared/api';
+import { useDndSensors } from '@/shared/hooks';
 import { DroppableColumn } from './droppable-column';
 import { TaskCardOverlay } from './task-card-overlay';
+
+type ColumnType = 'pending' | 'completed';
 
 interface TaskBoardProps {
   pendingTasks: Task[];
@@ -31,6 +26,21 @@ interface TaskBoardProps {
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
   onReorder: (orderedIds: string[]) => void;
+}
+
+function detectColumn(id: string, pendingIds: string[], completedIds: string[]): ColumnType | null {
+  if (id === 'pending' || pendingIds.includes(id)) return 'pending';
+  if (id === 'completed' || completedIds.includes(id)) return 'completed';
+  return null;
+}
+
+function reorderIds(ids: string[], fromId: string, toId: string): string[] {
+  const oldIndex = ids.indexOf(fromId);
+  const newIndex = ids.indexOf(toId);
+  const newOrder = [...ids];
+  newOrder.splice(oldIndex, 1);
+  newOrder.splice(newIndex, 0, fromId);
+  return newOrder;
 }
 
 export function TaskBoard({
@@ -42,16 +52,9 @@ export function TaskBoard({
   onReorder,
 }: TaskBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [overColumn, setOverColumn] = useState<'pending' | 'completed' | null>(null);
+  const [overColumn, setOverColumn] = useState<ColumnType | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  const sensors = useDndSensors();
 
   const allTasks = [...pendingTasks, ...completedTasks];
   const pendingIds = pendingTasks.map((t) => t.id);
@@ -65,28 +68,9 @@ export function TaskBoard({
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    if (!over) {
-      setOverColumn(null);
-      return;
-    }
-
-    const overId = String(over.id);
-
-    // Check if over a column directly
-    if (overId === 'pending' || overId === 'completed') {
-      setOverColumn(overId);
-      return;
-    }
-
-    // Check if over a task - determine which column it belongs to
-    if (pendingIds.includes(overId)) {
-      setOverColumn('pending');
-    } else if (completedIds.includes(overId)) {
-      setOverColumn('completed');
-    } else {
-      setOverColumn(null);
-    }
+    const overId = event.over ? String(event.over.id) : null;
+    const column = overId ? detectColumn(overId, pendingIds, completedIds) : null;
+    setOverColumn(column);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -98,37 +82,17 @@ export function TaskBoard({
 
     const activeId = String(active.id);
     const overId = String(over.id);
-    const activeInPending = pendingIds.includes(activeId);
-    const activeInCompleted = completedIds.includes(activeId);
 
-    // Check if dropping on a column or task in different column
-    const overIsPendingColumn = overId === 'pending';
-    const overIsCompletedColumn = overId === 'completed';
-    const overInPending = pendingIds.includes(overId);
-    const overInCompleted = completedIds.includes(overId);
+    const activeColumn = detectColumn(activeId, pendingIds, completedIds);
+    const overColumn = detectColumn(overId, pendingIds, completedIds);
 
-    // Moving from pending to completed
-    if (activeInPending && (overIsCompletedColumn || overInCompleted)) {
+    if (activeColumn !== overColumn && overColumn !== null) {
       onToggle(activeId);
       return;
     }
 
-    // Moving from completed to pending
-    if (activeInCompleted && (overIsPendingColumn || overInPending)) {
-      onToggle(activeId);
-      return;
-    }
-
-    // Reorder within pending tasks
-    if (activeInPending && overInPending && activeId !== overId) {
-      const oldIndex = pendingIds.indexOf(activeId);
-      const newIndex = pendingIds.indexOf(overId);
-
-      const newOrder = [...pendingIds];
-      newOrder.splice(oldIndex, 1);
-      newOrder.splice(newIndex, 0, activeId);
-
-      onReorder(newOrder);
+    if (activeColumn === 'pending' && pendingIds.includes(overId) && activeId !== overId) {
+      onReorder(reorderIds(pendingIds, activeId, overId));
     }
   };
 
