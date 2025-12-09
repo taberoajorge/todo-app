@@ -1,1 +1,1 @@
-export { EditTaskDialog } from './ui/edit-task-dialog';
+export { EditTaskModal } from './ui/edit-task-modal';
