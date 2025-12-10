@@ -2,10 +2,9 @@
 
 import { startOfDay } from 'date-fns';
 import { Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import type { Task } from '@/shared/api';
+import { useRef } from 'react';
+import type { TaskFormState } from '@/features/create-task';
 import { TASK_LIMITS } from '@/shared/config/constants';
-import { useFormModal } from '@/shared/hooks/useFormModal';
 import { createEnterHandler } from '@/shared/lib/form-helpers';
 import { Button } from '@/shared/ui/button';
 import { DatePicker } from '@/shared/ui/date-picker';
@@ -15,89 +14,43 @@ import { FormField } from '@/shared/ui/form-field';
 interface EditTaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  task: Task | null;
-  onSubmit: (data: { title: string; description?: string; deadline: string }) => Promise<void>;
+  formState: TaskFormState;
+  onSubmit: () => void;
   onDelete: () => void;
+  isSubmitting: boolean;
+  error?: string;
 }
 
 export function EditTaskModal({
   open,
   onOpenChange,
-  task,
+  formState,
   onSubmit,
   onDelete,
+  isSubmitting,
+  error,
 }: EditTaskModalProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState<Date | undefined>();
-
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
 
-  const {
-    isSubmitting,
-    error,
-    setError,
-    handleSubmit,
-    handleOpenChange: onModalClose,
-  } = useFormModal({
-    onSubmit: async (data: { title: string; description?: string; deadline: string }) => {
-      await onSubmit(data);
-    },
-  });
-
-  useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setDescription(task.description || '');
-      setDeadline(new Date(task.deadline));
-    }
-  }, [task]);
-
-  const hasChanges = task
-    ? title !== task.title ||
-      description !== (task.description || '') ||
-      deadline?.toISOString() !== task.deadline
-    : false;
-
-  const handleDialogOpenChange = (isOpen: boolean) => {
-    if (onModalClose(isOpen, hasChanges)) {
-      onOpenChange(isOpen);
-    }
-  };
-
-  const onFormSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!deadline) {
-      setError('Deadline is required');
-      return;
-    }
-
-    const success = await handleSubmit({
-      title: title.trim() || 'Untitled',
-      description: description.trim() || undefined,
-      deadline: deadline.toISOString(),
-    });
-
-    if (success) {
-      onOpenChange(false);
-    }
+    onSubmit();
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={onFormSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <FormField
             id="title"
             label="Title"
-            value={title}
-            onChange={setTitle}
+            value={formState.title}
+            onChange={formState.setTitle}
             onKeyDown={createEnterHandler(descriptionRef)}
             maxLength={TASK_LIMITS.TITLE_MAX}
           />
@@ -106,8 +59,8 @@ export function EditTaskModal({
             id="description"
             label="Description"
             type="textarea"
-            value={description}
-            onChange={setDescription}
+            value={formState.description}
+            onChange={formState.setDescription}
             onKeyDown={createEnterHandler(submitRef)}
             maxLength={TASK_LIMITS.DESCRIPTION_MAX}
             rows={3}
@@ -116,7 +69,11 @@ export function EditTaskModal({
 
           <div>
             <span className="text-sm font-medium block mb-1">Deadline *</span>
-            <DatePicker value={deadline} onChange={setDeadline} minDate={startOfDay(new Date())} />
+            <DatePicker
+              value={formState.deadline}
+              onChange={formState.setDeadline}
+              minDate={startOfDay(new Date())}
+            />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -133,10 +90,14 @@ export function EditTaskModal({
             </Button>
 
             <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => handleDialogOpenChange(false)}>
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button ref={submitRef} type="submit" disabled={isSubmitting || !hasChanges}>
+              <Button
+                ref={submitRef}
+                type="submit"
+                disabled={isSubmitting || !formState.hasChanges}
+              >
                 {isSubmitting ? 'Saving...' : 'Save'}
               </Button>
             </div>

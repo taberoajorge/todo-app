@@ -12,13 +12,15 @@ import {
 import { useRouter } from 'next/navigation';
 import { use, useState } from 'react';
 import { toast } from 'sonner';
-import { CreateTaskModal } from '@/features/create-task';
+import { useProjectFormState } from '@/features/create-project';
+import { CreateTaskModal, useTaskFormState } from '@/features/create-task';
 import { EditProjectModal } from '@/features/edit-project';
 import { EditTaskModal } from '@/features/edit-task';
 import type { Task } from '@/shared/api';
 import { ROUTES, type TaskFilter } from '@/shared/config/constants';
 import { TOAST } from '@/shared/config/messages';
 import { useDialogs } from '@/shared/hooks/useDialogs';
+import { useFormModal } from '@/shared/hooks/useFormModal';
 import { useProjectDetail } from '@/shared/hooks/useProjectDetail';
 import { useSwipeHint } from '@/shared/hooks/useSwipeHint';
 import { useTaskFiltering } from '@/shared/hooks/useTaskFiltering';
@@ -73,6 +75,38 @@ export default function ProjectDetailPage({ params }: PageProps) {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
+  const createTaskForm = useTaskFormState({ isOpen: dialogs.isOpen('createTask') });
+  const editTaskForm = useTaskFormState({ initialTask: taskToEdit });
+  const editProjectForm = useProjectFormState({ initialProject: project });
+
+  const createTaskModal = useFormModal({
+    onSubmit: async () => {
+      const data = createTaskForm.getData();
+      await createTask({ ...data, projectId });
+      toast.success(TOAST.TASK.CREATED);
+    },
+  });
+
+  const editTaskModal = useFormModal({
+    onSubmit: async () => {
+      if (taskToEdit) {
+        const data = editTaskForm.getData();
+        await updateTask(taskToEdit.id, data);
+        toast.success(TOAST.TASK.UPDATED);
+      }
+    },
+  });
+
+  const editProjectModal = useFormModal({
+    onSubmit: async () => {
+      if (project) {
+        const data = editProjectForm.getData();
+        await updateProject(data);
+        toast.success(TOAST.PROJECT.UPDATED);
+      }
+    },
+  });
+
   const handleSwipeLeft = async (task: Task) => {
     if (task.status !== 'in_progress') {
       await updateTaskStatus(task.id, 'in_progress');
@@ -117,37 +151,62 @@ export default function ProjectDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleUpdateProject = async (input: {
-    name: string;
-    description?: string;
-    color: string;
-  }) => {
-    if (project) {
-      await updateProject(input);
-      toast.success(TOAST.PROJECT.UPDATED);
+  const handleCreateTaskSubmit = async () => {
+    const validationError = createTaskForm.validate();
+    if (validationError) {
+      createTaskModal.setError(validationError);
+      return;
+    }
+    const success = await createTaskModal.handleSubmit(undefined);
+    if (success) {
+      createTaskForm.reset();
       dialogs.close();
     }
   };
 
-  const handleCreateTask = async (input: {
-    title: string;
-    description?: string;
-    deadline: string;
-  }) => {
-    await createTask({ ...input, projectId });
-    toast.success(TOAST.TASK.CREATED);
-    dialogs.close();
+  const handleEditTaskSubmit = async () => {
+    const validationError = editTaskForm.validate();
+    if (validationError) {
+      editTaskModal.setError(validationError);
+      return;
+    }
+    const success = await editTaskModal.handleSubmit(undefined);
+    if (success) {
+      setTaskToEdit(null);
+    }
   };
 
-  const handleUpdateTask = async (input: {
-    title: string;
-    description?: string;
-    deadline: string;
-  }) => {
-    if (taskToEdit) {
-      await updateTask(taskToEdit.id, input);
-      toast.success(TOAST.TASK.UPDATED);
+  const handleEditProjectSubmit = async () => {
+    const validationError = editProjectForm.validateCurrentStep();
+    if (validationError) {
+      editProjectModal.setError(validationError);
+      return;
+    }
+    const success = await editProjectModal.handleSubmit(undefined);
+    if (success) {
+      dialogs.close();
+    }
+  };
+
+  const handleCreateTaskOpenChange = (open: boolean) => {
+    if (!open) {
+      createTaskForm.reset();
+      createTaskModal.reset();
+      dialogs.close();
+    }
+  };
+
+  const handleEditTaskOpenChange = (open: boolean) => {
+    if (!open) {
+      editTaskModal.reset();
       setTaskToEdit(null);
+    }
+  };
+
+  const handleEditProjectOpenChange = (open: boolean) => {
+    if (!open) {
+      editProjectModal.reset();
+      dialogs.close();
     }
   };
 
@@ -270,23 +329,30 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
       <CreateTaskModal
         open={dialogs.isOpen('createTask')}
-        onOpenChange={(open) => !open && dialogs.close()}
-        onSubmit={handleCreateTask}
+        onOpenChange={handleCreateTaskOpenChange}
+        formState={createTaskForm}
+        onSubmit={handleCreateTaskSubmit}
+        isSubmitting={createTaskModal.isSubmitting}
+        error={createTaskModal.error}
       />
 
       <EditProjectModal
         open={dialogs.isOpen('editProject')}
-        onOpenChange={(open) => !open && dialogs.close()}
-        project={project}
-        onSubmit={handleUpdateProject}
+        onOpenChange={handleEditProjectOpenChange}
+        formState={editProjectForm}
+        onSubmit={handleEditProjectSubmit}
+        isSubmitting={editProjectModal.isSubmitting}
+        error={editProjectModal.error}
       />
 
       <EditTaskModal
         open={!!taskToEdit}
-        onOpenChange={(open) => !open && setTaskToEdit(null)}
-        task={taskToEdit}
-        onSubmit={handleUpdateTask}
+        onOpenChange={handleEditTaskOpenChange}
+        formState={editTaskForm}
+        onSubmit={handleEditTaskSubmit}
         onDelete={() => taskToEdit && handleDeleteTask(taskToEdit)}
+        isSubmitting={editTaskModal.isSubmitting}
+        error={editTaskModal.error}
       />
 
       <AlertDialog
