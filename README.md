@@ -79,16 +79,23 @@ src/
 
 ## Data Flow
 
-```
-User Action
-    ↓
-Custom Hook (useHomeData, useTasks, useProjects)
-    ↓
-Repository (createTaskRepository, createProjectRepository)
-    ↓
-IndexedDB (via adapter)
-    ↓
-State Update → UI Refresh
+```mermaid
+sequenceDiagram
+    participant User
+    participant Component
+    participant Hook
+    participant Repository
+    participant IndexedDB
+
+    User->>Component: Click action
+    Component->>Hook: Call handler
+    Hook->>Hook: Optimistic update
+    Hook-->>Component: UI updates instantly
+    Hook->>Repository: Persist data
+    Repository->>IndexedDB: Write to store
+    IndexedDB-->>Repository: Confirm
+    Repository-->>Hook: Success/Error
+    Hook-->>Component: Final state
 ```
 
 - **Optimistic updates**: UI updates instantly before async operations complete
