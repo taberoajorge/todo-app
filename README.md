@@ -133,3 +133,7 @@ Unit tests + property-based tests using fast-check for edge case discovery.
 ```bash
 pnpm test
 ```
+
+## Credits
+
+Design inspired by [Dmitry Lauretsky](https://dribbble.com/dlauretsky) from [Ronas IT](https://dribbble.com/ronasit) — [Task Management App](https://dribbble.com/shots/15963414-Task-Management-App)
