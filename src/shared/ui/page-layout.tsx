@@ -27,7 +27,7 @@ export function PageLayout({
         <div className="mx-auto max-w-lg px-4 pt-6">{header}</div>
       </div>
 
-      <div className={cn('flex-1 overflow-y-auto', paddingMap[bottomPadding])}>
+      <div className={cn('flex-1 overflow-y-auto scrollbar-hide', paddingMap[bottomPadding])}>
         <div className="mx-auto max-w-lg px-4">{children}</div>
       </div>
     </main>
