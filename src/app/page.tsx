@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { PageLayout } from '@/shared/ui/page-layout';
 import { PageLoading } from '@/shared/ui/page-loading';
 import { ProgressRing } from '@/shared/ui/progress-ring';
 import { SectionHeader } from '@/shared/ui/section-header';
@@ -59,196 +60,179 @@ export default function HomePage() {
     </div>
   );
 
+  const header = (
+    <>
+      <header className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Hello, {DEFAULTS.USER_NAME}</h1>
+        <ThemeSwitch />
+      </header>
+
+      {isFreeDay && (
+        <div className="mb-6 overflow-hidden rounded-[10px] bg-primary p-6">
+          <div className="flex flex-col items-center text-center text-primary-foreground">
+            <div className="mb-4 animate-celebrate rounded-full bg-white/20 p-6">
+              <Sparkles className="h-12 w-12" />
+            </div>
+            <h2 className="mb-2 text-2xl font-bold">Free Day!</h2>
+            <p className="opacity-90">No tasks scheduled for today. Enjoy your day!</p>
+            <Link
+              href={ROUTES.PROJECTS}
+              className="mt-4 flex items-center gap-2 font-medium hover:underline"
+            >
+              View projects <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {!isFreeDay && (
+        <div className="mb-6 overflow-hidden rounded-[10px] bg-primary p-6">
+          <div className="relative flex items-center justify-between">
+            <div className="text-primary-foreground">
+              <p className="text-sm font-medium opacity-90">Today</p>
+              <p className="mt-1 text-3xl font-bold">
+                {todayStats.completed}/{todayStats.total} tasks
+              </p>
+            </div>
+            <div className="absolute -right-4 -top-4 h-32 w-32 opacity-20">
+              <svg
+                viewBox="0 0 100 100"
+                className="h-full w-full fill-current text-white"
+                role="img"
+                aria-label="Decorative smiley face illustration"
+              >
+                <title>Decorative illustration</title>
+                <circle cx="50" cy="50" r="40" />
+                <circle cx="30" cy="40" r="8" />
+                <circle cx="70" cy="40" r="8" />
+                <path d="M30 65 Q50 80 70 65" fill="none" stroke="currentColor" strokeWidth="4" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {todayTodo.length > 0 && (
+        <section className="mb-6">
+          <SectionHeader title="To do" count={todayTodo.length} variant="primary">
+            {paginationDots}
+          </SectionHeader>
+          <div
+            ref={actions.carouselRef}
+            onScroll={actions.handleCarouselScroll}
+            className="carousel flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
+          >
+            {todayTodo.map((task) => {
+              const project = projectMap.get(task.projectId);
+              const baseColor = project?.color || COLORS.PRIMARY;
+              const cardColor = isDark ? getDarkModeColor(baseColor) : baseColor;
+              const textColor = getContrastColor(baseColor, isDark);
+
+              return (
+                <div
+                  key={task.id}
+                  className="carousel-item relative min-w-[180px] max-w-[180px] rounded-[10px] shadow-md snap-start transition-transform hover:scale-[1.02]"
+                  style={{ backgroundColor: cardColor }}
+                >
+                  <button
+                    type="button"
+                    className="w-full h-full p-4 text-left"
+                    onClick={() => actions.handleTaskClick(task)}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      {project && (
+                        <p
+                          className="text-xs font-medium flex-1 truncate"
+                          style={{ color: textColor, opacity: 0.8 }}
+                        >
+                          {project.name}
+                        </p>
+                      )}
+                      <div className="w-6" />
+                    </div>
+                    <h3 className="line-clamp-2 font-semibold" style={{ color: textColor }}>
+                      {task.title}
+                    </h3>
+                    <div
+                      className="mt-3 flex items-center gap-1 text-xs"
+                      style={{ color: textColor, opacity: 0.8 }}
+                    >
+                      <Clock className="h-3 w-3" />
+                      <span>till {format(new Date(task.deadline), 'dd MMM yyyy')}</span>
+                    </div>
+                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="absolute top-3 right-3 p-1 rounded hover:bg-black/10">
+                      <MoreVertical
+                        className="h-4 w-4"
+                        style={{ color: textColor, opacity: 0.8 }}
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => actions.handleStatusChange(task, 'in_progress')}
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Start Progress
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => actions.handleStatusChange(task, 'done')}>
+                        <Check className="mr-2 h-4 w-4" />
+                        Mark as Done
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {!isFreeDay && (
+        <SectionHeader title="In progress" count={inProgress.length} variant="primary" />
+      )}
+    </>
+  );
+
   return (
     <>
-      <main className="flex h-dvh flex-col overflow-hidden">
-        <div className="shrink-0 bg-background">
-          <div className="mx-auto max-w-lg px-4 pt-6">
-            <header className="mb-4 flex items-center justify-between">
-              <h1 className="text-2xl font-bold">Hello, {DEFAULTS.USER_NAME}</h1>
-              <ThemeSwitch />
-            </header>
-          </div>
-        </div>
+      <PageLayout header={header}>
+        {inProgress.length > 0 && (
+          <div className="flex flex-col gap-4">
+            {inProgress.map((task) => {
+              const project = projectMap.get(task.projectId);
 
-        <div className="shrink-0 bg-background">
-          <div className="mx-auto max-w-lg px-4">
-            {isFreeDay && (
-              <div className="mb-6 overflow-hidden rounded-[10px] bg-primary p-6">
-                <div className="flex flex-col items-center text-center text-primary-foreground">
-                  <div className="mb-4 animate-celebrate rounded-full bg-white/20 p-6">
-                    <Sparkles className="h-12 w-12" />
-                  </div>
-                  <h2 className="mb-2 text-2xl font-bold">Free Day!</h2>
-                  <p className="opacity-90">No tasks scheduled for today. Enjoy your day!</p>
-                  <Link
-                    href={ROUTES.PROJECTS}
-                    className="mt-4 flex items-center gap-2 font-medium hover:underline"
-                  >
-                    View projects <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {!isFreeDay && (
-              <div className="mb-6 overflow-hidden rounded-[10px] bg-primary p-6">
-                <div className="relative flex items-center justify-between">
-                  <div className="text-primary-foreground">
-                    <p className="text-sm font-medium opacity-90">Today</p>
-                    <p className="mt-1 text-3xl font-bold">
-                      {todayStats.completed}/{todayStats.total} tasks
-                    </p>
-                  </div>
-                  <div className="absolute -right-4 -top-4 h-32 w-32 opacity-20">
-                    <svg
-                      viewBox="0 0 100 100"
-                      className="h-full w-full fill-current text-white"
-                      role="img"
-                      aria-label="Decorative smiley face illustration"
-                    >
-                      <title>Decorative illustration</title>
-                      <circle cx="50" cy="50" r="40" />
-                      <circle cx="30" cy="40" r="8" />
-                      <circle cx="70" cy="40" r="8" />
-                      <path
-                        d="M30 65 Q50 80 70 65"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {todayTodo.length > 0 && (
-              <section className="mb-6">
-                <SectionHeader title="To do" count={todayTodo.length} variant="primary">
-                  {paginationDots}
-                </SectionHeader>
-                <div
-                  ref={actions.carouselRef}
-                  onScroll={actions.handleCarouselScroll}
-                  className="carousel flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
-                >
-                  {todayTodo.map((task) => {
-                    const project = projectMap.get(task.projectId);
-                    const baseColor = project?.color || COLORS.PRIMARY;
-                    const cardColor = isDark ? getDarkModeColor(baseColor) : baseColor;
-                    const textColor = getContrastColor(baseColor, isDark);
-
-                    return (
-                      <div
-                        key={task.id}
-                        className="carousel-item relative min-w-[180px] max-w-[180px] rounded-[10px] shadow-md snap-start transition-transform hover:scale-[1.02]"
-                        style={{ backgroundColor: cardColor }}
-                      >
-                        <button
-                          type="button"
-                          className="w-full h-full p-4 text-left"
-                          onClick={() => actions.handleTaskClick(task)}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            {project && (
-                              <p
-                                className="text-xs font-medium flex-1 truncate"
-                                style={{ color: textColor, opacity: 0.8 }}
-                              >
-                                {project.name}
-                              </p>
-                            )}
-                            <div className="w-6" />
-                          </div>
-                          <h3 className="line-clamp-2 font-semibold" style={{ color: textColor }}>
-                            {task.title}
-                          </h3>
-                          <div
-                            className="mt-3 flex items-center gap-1 text-xs"
-                            style={{ color: textColor, opacity: 0.8 }}
-                          >
-                            <Clock className="h-3 w-3" />
-                            <span>till {format(new Date(task.deadline), 'dd MMM yyyy')}</span>
-                          </div>
-                        </button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="absolute top-3 right-3 p-1 rounded hover:bg-black/10">
-                            <MoreVertical
-                              className="h-4 w-4"
-                              style={{ color: textColor, opacity: 0.8 }}
-                            />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => actions.handleStatusChange(task, 'in_progress')}
-                            >
-                              <Play className="mr-2 h-4 w-4" />
-                              Start Progress
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => actions.handleStatusChange(task, 'done')}
-                            >
-                              <Check className="mr-2 h-4 w-4" />
-                              Mark as Done
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+              return (
+                <Link key={task.id} href={ROUTES.PROJECT_DETAIL(task.projectId)}>
+                  <Card className="rounded-[10px] transition-all hover:shadow-md">
+                    <CardContent className="flex items-center gap-4 py-4">
+                      <div className="min-w-0 flex-1">
+                        {project && <p className="text-xs text-muted-foreground">{project.name}</p>}
+                        <h3 className="mt-1 truncate font-semibold">{task.title}</h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {format(new Date(task.deadline), 'h:mm a')}
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {!isFreeDay && (
-              <SectionHeader title="In progress" count={inProgress.length} variant="primary" />
-            )}
+                      <ProgressRing
+                        progress={calculateTimeProgress(task.createdAt, task.deadline)}
+                        size={48}
+                        strokeWidth={4}
+                        color={project?.color}
+                      />
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        )}
 
-        <div className="flex-1 overflow-hidden">
-          <div className="mx-auto h-full max-w-lg overflow-y-auto px-4 pb-28 scrollbar-thin">
-            {inProgress.length > 0 && (
-              <div className="flex flex-col gap-4">
-                {inProgress.map((task) => {
-                  const project = projectMap.get(task.projectId);
-
-                  return (
-                    <Link key={task.id} href={ROUTES.PROJECT_DETAIL(task.projectId)}>
-                      <Card className="rounded-[10px] transition-all hover:shadow-md">
-                        <CardContent className="flex items-center gap-4 py-4">
-                          <div className="min-w-0 flex-1">
-                            {project && (
-                              <p className="text-xs text-muted-foreground">{project.name}</p>
-                            )}
-                            <h3 className="mt-1 truncate font-semibold">{task.title}</h3>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              {format(new Date(task.deadline), 'h:mm a')}
-                            </p>
-                          </div>
-                          <ProgressRing
-                            progress={calculateTimeProgress(task.createdAt, task.deadline)}
-                            size={48}
-                            strokeWidth={4}
-                            color={project?.color}
-                          />
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-
-            {inProgress.length === 0 && !isFreeDay && (
-              <div className="rounded-[10px] border bg-card py-8 text-center text-muted-foreground">
-                No tasks in progress
-              </div>
-            )}
+        {inProgress.length === 0 && !isFreeDay && (
+          <div className="rounded-[10px] border bg-card py-8 text-center text-muted-foreground">
+            No tasks in progress
           </div>
-        </div>
-      </main>
+        )}
+      </PageLayout>
       <BottomNav />
     </>
   );
