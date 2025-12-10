@@ -3,11 +3,8 @@
 import { format } from 'date-fns';
 import { ArrowRight, Check, Clock, MoreVertical, Play, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { useRef, useState } from 'react';
 import { ThemeSwitch } from '@/features/toggle-theme';
-import type { Task } from '@/shared/api';
 import { DEFAULTS, ROUTES } from '@/shared/config/constants';
 import { useHomeData } from '@/shared/hooks/useHomeData';
 import { COLORS, getContrastColor, getDarkModeColor } from '@/shared/lib/colors';
@@ -25,46 +22,15 @@ import { PageLoading } from '@/shared/ui/page-loading';
 import { ProgressRing } from '@/shared/ui/progress-ring';
 import { SectionHeader } from '@/shared/ui/section-header';
 import { BottomNav } from '@/widgets/bottom-nav';
+import { useHomeActions } from './hooks/useHomeActions';
 
 export default function HomePage() {
-  const router = useRouter();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 
-  const {
-    isLoading,
-    todayTodo,
-    inProgress,
-    todayStats,
-    projectMap,
-    isFreeDay,
-    handleStatusChange,
-    getTaskRoute,
-  } = useHomeData();
+  const { isLoading, todayTodo, inProgress, todayStats, projectMap, isFreeDay } = useHomeData();
 
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const handleCarouselScroll = () => {
-    if (!carouselRef.current) return;
-    const scrollLeft = carouselRef.current.scrollLeft;
-    const cardWidth = 180 + 16;
-    const index = Math.round(scrollLeft / cardWidth);
-    setActiveIndex(Math.min(index, todayTodo.length - 1));
-  };
-
-  const scrollToCard = (index: number) => {
-    if (!carouselRef.current) return;
-    const cardWidth = 180 + 16;
-    carouselRef.current.scrollTo({
-      left: index * cardWidth,
-      behavior: 'smooth',
-    });
-  };
-
-  const handleTaskClick = (task: Task) => {
-    router.push(getTaskRoute(task));
-  };
+  const actions = useHomeActions(todayTodo.length);
 
   if (isLoading) {
     return (
@@ -90,10 +56,10 @@ export default function HomePage() {
         <button
           type="button"
           key={task.id}
-          onClick={() => scrollToCard(index)}
+          onClick={() => actions.scrollToCard(index)}
           className={cn(
             'h-2 w-2 rounded-full transition-all',
-            index === activeIndex
+            index === actions.activeIndex
               ? 'bg-primary w-4'
               : 'bg-muted-foreground/30 hover:bg-muted-foreground/50',
           )}
@@ -157,8 +123,8 @@ export default function HomePage() {
               {paginationDots}
             </SectionHeader>
             <div
-              ref={carouselRef}
-              onScroll={handleCarouselScroll}
+              ref={actions.carouselRef}
+              onScroll={actions.handleCarouselScroll}
               className="carousel flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
             >
               {todayTodo.map((task) => {
@@ -176,7 +142,7 @@ export default function HomePage() {
                     <button
                       type="button"
                       className="w-full h-full p-4 text-left"
-                      onClick={() => handleTaskClick(task)}
+                      onClick={() => actions.handleTaskClick(task)}
                     >
                       <div className="flex items-start justify-between mb-2">
                         {project && (
@@ -208,11 +174,13 @@ export default function HomePage() {
                         />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleStatusChange(task, 'in_progress')}>
+                        <DropdownMenuItem
+                          onClick={() => actions.handleStatusChange(task, 'in_progress')}
+                        >
                           <Play className="mr-2 h-4 w-4" />
                           Start Progress
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(task, 'done')}>
+                        <DropdownMenuItem onClick={() => actions.handleStatusChange(task, 'done')}>
                           <Check className="mr-2 h-4 w-4" />
                           Mark as Done
                         </DropdownMenuItem>
