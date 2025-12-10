@@ -10,21 +10,15 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { use, useState } from 'react';
-import { toast } from 'sonner';
-import { useProjectFormState } from '@/features/create-project';
-import { CreateTaskModal, useTaskFormState } from '@/features/create-task';
+import { use } from 'react';
+import { CreateTaskModal } from '@/features/create-task';
 import { EditProjectModal } from '@/features/edit-project';
 import { EditTaskModal } from '@/features/edit-task';
-import type { Task } from '@/shared/api';
 import { ROUTES, type TaskFilter } from '@/shared/config/constants';
-import { TOAST } from '@/shared/config/messages';
 import { useDialogs } from '@/shared/hooks/useDialogs';
-import { useFormModal } from '@/shared/hooks/useFormModal';
 import { useProjectDetail } from '@/shared/hooks/useProjectDetail';
 import { useSwipeHint } from '@/shared/hooks/useSwipeHint';
 import { useTaskFiltering } from '@/shared/hooks/useTaskFiltering';
-import { useTasks } from '@/shared/hooks/useTasks';
 import { isOverdue } from '@/shared/lib/date-utils';
 import {
   AlertDialog,
@@ -48,6 +42,7 @@ import { PageLayout } from '@/shared/ui/page-layout';
 import { PageLoading } from '@/shared/ui/page-loading';
 import { Tabs } from '@/shared/ui/tabs';
 import { TaskCard } from '@/shared/ui/task-card';
+import { useProjectDetailActions } from './hooks/useProjectDetailActions';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -59,156 +54,20 @@ export default function ProjectDetailPage({ params }: PageProps) {
   const { id: projectId } = use(params);
   const router = useRouter();
 
-  const { project, isLoading, updateProject, deleteProject } = useProjectDetail(projectId);
+  const { project, isLoading } = useProjectDetail(projectId);
   const { showSwipeHint, dismissSwipeHint } = useSwipeHint();
   const dialogs = useDialogs<ProjectDialog>();
 
-  const { tasks, todo, inProgress, done, createTask, updateTask, updateTaskStatus, deleteTask } =
-    useTasks(projectId);
+  const actions = useProjectDetailActions(projectId, project, dialogs);
 
-  const { activeFilter, setActiveFilter, filteredTasks, tabs } = useTaskFiltering(tasks, {
-    todo,
-    inProgress,
-    done,
-  });
-
-  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-
-  const createTaskForm = useTaskFormState({ isOpen: dialogs.isOpen('createTask') });
-  const editTaskForm = useTaskFormState({ initialTask: taskToEdit });
-  const editProjectForm = useProjectFormState({ initialProject: project });
-
-  const createTaskModal = useFormModal({
-    onSubmit: async () => {
-      const data = createTaskForm.getData();
-      await createTask({ ...data, projectId });
-      toast.success(TOAST.TASK.CREATED);
+  const { activeFilter, setActiveFilter, filteredTasks, tabs } = useTaskFiltering(
+    actions.tasks.tasks,
+    {
+      todo: actions.tasks.todo,
+      inProgress: actions.tasks.inProgress,
+      done: actions.tasks.done,
     },
-  });
-
-  const editTaskModal = useFormModal({
-    onSubmit: async () => {
-      if (taskToEdit) {
-        const data = editTaskForm.getData();
-        await updateTask(taskToEdit.id, data);
-        toast.success(TOAST.TASK.UPDATED);
-      }
-    },
-  });
-
-  const editProjectModal = useFormModal({
-    onSubmit: async () => {
-      if (project) {
-        const data = editProjectForm.getData();
-        await updateProject(data);
-        toast.success(TOAST.PROJECT.UPDATED);
-      }
-    },
-  });
-
-  const handleSwipeLeft = async (task: Task) => {
-    if (task.status !== 'in_progress') {
-      await updateTaskStatus(task.id, 'in_progress');
-      toast.success(TOAST.TASK.IN_PROGRESS);
-    }
-  };
-
-  const handleSwipeRight = async (task: Task) => {
-    if (task.status !== 'done') {
-      await updateTaskStatus(task.id, 'done');
-      toast.success(TOAST.TASK.COMPLETED);
-    }
-  };
-
-  const confirmRevert = async () => {
-    if (taskToDelete) {
-      await updateTaskStatus(taskToDelete.id, 'in_progress');
-      toast.info(TOAST.TASK.REVERTED);
-      setTaskToDelete(null);
-      dialogs.close();
-    }
-  };
-
-  const handleDeleteTask = async (task: Task) => {
-    setTaskToDelete(task);
-    dialogs.open('deleteTask');
-  };
-
-  const confirmDeleteTask = async () => {
-    if (taskToDelete) {
-      await deleteTask(taskToDelete.id);
-      toast.info(TOAST.TASK.DELETED);
-      setTaskToDelete(null);
-      dialogs.close();
-    }
-  };
-
-  const handleDeleteProject = async () => {
-    if (project) {
-      await deleteProject();
-      toast.success(TOAST.PROJECT.DELETED(project.name));
-    }
-  };
-
-  const handleCreateTaskSubmit = async () => {
-    const validationError = createTaskForm.validate();
-    if (validationError) {
-      createTaskModal.setError(validationError);
-      return;
-    }
-    const success = await createTaskModal.handleSubmit(undefined);
-    if (success) {
-      createTaskForm.reset();
-      dialogs.close();
-    }
-  };
-
-  const handleEditTaskSubmit = async () => {
-    const validationError = editTaskForm.validate();
-    if (validationError) {
-      editTaskModal.setError(validationError);
-      return;
-    }
-    const success = await editTaskModal.handleSubmit(undefined);
-    if (success) {
-      setTaskToEdit(null);
-    }
-  };
-
-  const handleEditProjectSubmit = async () => {
-    const validationError = editProjectForm.validateCurrentStep();
-    if (validationError) {
-      editProjectModal.setError(validationError);
-      return;
-    }
-    const success = await editProjectModal.handleSubmit(undefined);
-    if (success) {
-      dialogs.close();
-    }
-  };
-
-  const handleCreateTaskOpenChange = (open: boolean) => {
-    if (!open) {
-      createTaskForm.reset();
-      createTaskModal.reset();
-      dialogs.close();
-    }
-  };
-
-  const handleEditTaskOpenChange = (open: boolean) => {
-    if (!open) {
-      editTaskModal.reset();
-      setTaskToEdit(null);
-    }
-  };
-
-  const handleEditProjectOpenChange = (open: boolean) => {
-    if (!open) {
-      editProjectModal.reset();
-      dialogs.close();
-    }
-  };
+  );
 
   if (isLoading || !project) {
     return <PageLoading withBottomNav={false} />;
@@ -307,9 +166,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                 projectColor={project.color}
                 showStatusBadge={activeFilter === 'all'}
                 isOverdue={isOverdue(task.deadline) && task.status !== 'done'}
-                onSwipeLeft={() => handleSwipeLeft(task)}
-                onSwipeRight={() => handleSwipeRight(task)}
-                onClick={() => setTaskToEdit(task)}
+                onSwipeLeft={() => actions.handleSwipeLeft(task)}
+                onSwipeRight={() => actions.handleSwipeRight(task)}
+                onClick={() => actions.setTaskToEdit(task)}
               />
             ))}
           </div>
@@ -329,30 +188,30 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
       <CreateTaskModal
         open={dialogs.isOpen('createTask')}
-        onOpenChange={handleCreateTaskOpenChange}
-        formState={createTaskForm}
-        onSubmit={handleCreateTaskSubmit}
-        isSubmitting={createTaskModal.isSubmitting}
-        error={createTaskModal.error}
+        onOpenChange={actions.handleCreateTaskOpenChange}
+        formState={actions.createTaskForm}
+        onSubmit={actions.handleCreateTaskSubmit}
+        isSubmitting={actions.createTaskModal.isSubmitting}
+        error={actions.createTaskModal.error}
       />
 
       <EditProjectModal
         open={dialogs.isOpen('editProject')}
-        onOpenChange={handleEditProjectOpenChange}
-        formState={editProjectForm}
-        onSubmit={handleEditProjectSubmit}
-        isSubmitting={editProjectModal.isSubmitting}
-        error={editProjectModal.error}
+        onOpenChange={actions.handleEditProjectOpenChange}
+        formState={actions.editProjectForm}
+        onSubmit={actions.handleEditProjectSubmit}
+        isSubmitting={actions.editProjectModal.isSubmitting}
+        error={actions.editProjectModal.error}
       />
 
       <EditTaskModal
-        open={!!taskToEdit}
-        onOpenChange={handleEditTaskOpenChange}
-        formState={editTaskForm}
-        onSubmit={handleEditTaskSubmit}
-        onDelete={() => taskToEdit && handleDeleteTask(taskToEdit)}
-        isSubmitting={editTaskModal.isSubmitting}
-        error={editTaskModal.error}
+        open={!!actions.taskToEdit}
+        onOpenChange={actions.handleEditTaskOpenChange}
+        formState={actions.editTaskForm}
+        onSubmit={actions.handleEditTaskSubmit}
+        onDelete={() => actions.taskToEdit && actions.handleDeleteTask(actions.taskToEdit)}
+        isSubmitting={actions.editTaskModal.isSubmitting}
+        error={actions.editTaskModal.error}
       />
 
       <AlertDialog
@@ -370,7 +229,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteProject}
+              onClick={actions.handleDeleteProject}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
@@ -381,35 +240,34 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
       <AlertDialog
         open={dialogs.isOpen('deleteTask')}
-        onOpenChange={(open) => {
-          if (!open) {
-            dialogs.close();
-            setTaskToDelete(null);
-          }
-        }}
+        onOpenChange={actions.handleDeleteTaskDialogChange}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {taskToDelete?.status === 'done' ? 'Revert Task?' : 'Delete Task?'}
+              {actions.taskToDelete?.status === 'done' ? 'Revert Task?' : 'Delete Task?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {taskToDelete?.status === 'done'
-                ? `Move "${taskToDelete?.title}" back to In Progress?`
-                : `Are you sure you want to delete "${taskToDelete?.title}"?`}
+              {actions.taskToDelete?.status === 'done'
+                ? `Move "${actions.taskToDelete?.title}" back to In Progress?`
+                : `Are you sure you want to delete "${actions.taskToDelete?.title}"?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={taskToDelete?.status === 'done' ? confirmRevert : confirmDeleteTask}
+              onClick={
+                actions.taskToDelete?.status === 'done'
+                  ? actions.confirmRevert
+                  : actions.confirmDeleteTask
+              }
               className={
-                taskToDelete?.status !== 'done'
+                actions.taskToDelete?.status !== 'done'
                   ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
                   : ''
               }
             >
-              {taskToDelete?.status === 'done' ? 'Revert' : 'Delete'}
+              {actions.taskToDelete?.status === 'done' ? 'Revert' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
