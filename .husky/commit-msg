@@ -1,1 +1,13 @@
-pnpm commitlint --config config/commitlint.config.cjs --edit "$1"
+#!/usr/bin/env sh
+set -eu
+
+message_file="${1:?Missing commit message file path}"
+
+if [ -x "./node_modules/.bin/commitlint" ]; then
+  pnpm exec commitlint --config config/commitlint.config.cjs --edit "$message_file"
+else
+  pnpm dlx @commitlint/cli --config config/commitlint.config.cjs --edit "$message_file"
+fi
+
+node scripts/git/check-commit-message.mjs "$message_file"
+node scripts/commit/check-commit-size.cjs "$message_file"

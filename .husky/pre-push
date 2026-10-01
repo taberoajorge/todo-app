@@ -1,1 +1,167 @@
-pnpm test
+#!/usr/bin/env sh
+set -eu
+
+ZERO_OID="0000000000000000000000000000000000000000"
+
+has_commit() {
+  git rev-parse --verify --quiet "$1^{commit}" >/dev/null 2>&1
+}
+
+get_branch_upstream() {
+  git for-each-ref --format='%(upstream)' "$1" | sed -n '1p'
+}
+
+get_remote_tracking_ref() {
+  remote_name="$1"
+  remote_ref="$2"
+
+  case "$remote_ref" in
+    refs/heads/*)
+      printf '%s\n' "refs/remotes/$remote_name/${remote_ref#refs/heads/}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+get_remote_default_ref() {
+  git symbolic-ref --quiet "refs/remotes/$1/HEAD" 2>/dev/null || true
+}
+
+resolve_existing_base() {
+  local_ref="$1"
+  remote_name="$2"
+  remote_ref="$3"
+  remote_oid="$4"
+
+  if [ "$remote_oid" != "$ZERO_OID" ] && has_commit "$remote_oid"; then
+    printf '%s\n' "$remote_oid"
+    return 0
+  fi
+
+  tracking_ref="$(get_remote_tracking_ref "$remote_name" "$remote_ref" 2>/dev/null || true)"
+  if [ -n "$tracking_ref" ] && has_commit "$tracking_ref"; then
+    printf '%s\n' "$tracking_ref"
+    return 0
+  fi
+
+  upstream_ref="$(get_branch_upstream "$local_ref")"
+  if [ -n "$upstream_ref" ] && has_commit "$upstream_ref"; then
+    printf '%s\n' "$upstream_ref"
+    return 0
+  fi
+
+  return 1
+}
+
+resolve_base_ref() {
+  local_ref="$1"
+  remote_name="$2"
+  remote_ref="$3"
+  remote_oid="$4"
+
+  existing_base="$(resolve_existing_base "$local_ref" "$remote_name" "$remote_ref" "$remote_oid" 2>/dev/null || true)"
+  if [ -n "$existing_base" ]; then
+    printf '%s\n' "$existing_base"
+    return 0
+  fi
+
+  default_ref="$(get_remote_default_ref "$remote_name")"
+  if [ -n "$default_ref" ] && has_commit "$default_ref"; then
+    printf '%s\n' "$default_ref"
+    return 0
+  fi
+
+  if [ "$remote_name" = "origin" ] && has_commit "origin/main"; then
+    printf '%s\n' "origin/main"
+    return 0
+  fi
+
+  return 1
+}
+
+audit_range() {
+  base_ref="$1"
+  head_ref="$2"
+  command="pnpm run commit:audit-branch --base=$base_ref --head=$head_ref"
+
+  if pnpm run commit:audit-branch "--base=$base_ref" "--head=$head_ref"; then
+    return 0
+  fi
+
+  echo >&2
+  echo >&2 "Push blocked by branch audit."
+  echo >&2 "Reproduce locally with: $command"
+  return 1
+}
+
+audit_ref_update() {
+  local_ref="$1"
+  local_oid="$2"
+  remote_name="$3"
+  remote_ref="$4"
+  remote_oid="$5"
+
+  case "$local_ref" in
+    refs/heads/*) ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  if [ "$local_oid" = "$ZERO_OID" ]; then
+    return 0
+  fi
+
+  base_ref="$(resolve_base_ref "$local_ref" "$remote_name" "$remote_ref" "$remote_oid" 2>/dev/null || true)"
+
+  if [ -z "$base_ref" ]; then
+    echo >&2 "Push blocked: unable to resolve a base ref for branch audit."
+    echo >&2 "Reproduce locally with: pnpm run commit:audit-branch --base=origin/main --head=$local_oid"
+    return 1
+  fi
+
+  audit_range "$base_ref" "$local_oid"
+}
+
+manual_ref_update() {
+  current_ref="$(git symbolic-ref --quiet HEAD 2>/dev/null || true)"
+
+  if [ -z "$current_ref" ]; then
+    return 0
+  fi
+
+  current_oid="$(git rev-parse HEAD)"
+  branch_name="${current_ref#refs/heads/}"
+  remote_name="$(git config --get "branch.$branch_name.remote" 2>/dev/null || true)"
+  remote_ref="$(git config --get "branch.$branch_name.merge" 2>/dev/null || true)"
+
+  if [ -z "$remote_name" ]; then
+    remote_name="${1:-origin}"
+  fi
+
+  remote_oid="$ZERO_OID"
+  upstream_ref="$(get_branch_upstream "$current_ref")"
+  if [ -n "$upstream_ref" ] && has_commit "$upstream_ref"; then
+    remote_oid="$(git rev-parse "$upstream_ref")"
+  fi
+
+  audit_ref_update "$current_ref" "$current_oid" "$remote_name" "$remote_ref" "$remote_oid"
+}
+
+remote_name="${1:-origin}"
+stdin_had_updates=0
+
+while IFS=' ' read -r local_ref local_oid remote_ref remote_oid; do
+  if [ -z "${local_ref:-}" ]; then
+    continue
+  fi
+
+  stdin_had_updates=1
+  audit_ref_update "$local_ref" "$local_oid" "$remote_name" "$remote_ref" "$remote_oid" || exit 1
+done
+
+if [ "$stdin_had_updates" -eq 0 ]; then
+  manual_ref_update "$remote_name"
+fi

@@ -112,6 +112,20 @@ pnpm knip         # Find dead code
 pnpm typecheck    # TypeScript type checking
 ```
 
+## Commit Policy
+
+Quick version: keep new history clean and fix branch issues before merge. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full policy, more examples, and edge-case guidance.
+
+- Never rewrite published `main`; fix issues there with follow-up commits instead of force-pushing a new history.
+- Normalize history forward on active branches before merge.
+- Split mixed changes into separate commits, especially code and documentation updates. Use `git add -p` to stage one concern at a time.
+- Keep mixed changes together only when the documented atomic exception in `CONTRIBUTING.md` applies.
+
+Compact examples:
+
+- Valid: `fix(ui): prevent dialog overflow on mobile` + `docs(readme): clarify local setup`
+- Invalid: `feat(ui): prevent dialog overflow on mobile and refresh README copy`
+
 ## Key Decisions
 
 ### IndexedDB over localStorage

@@ -1,0 +1,63 @@
+name: Commit Audit
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-branch-history:
+    name: Audit branch commit history
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request branch
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Checkout pushed branch
+        if: github.event_name == 'push'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve audit range
+        id: audit-range
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          zero_sha="0000000000000000000000000000000000000000"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git remote add upstream "https://github.com/${GITHUB_REPOSITORY}.git"
+            git fetch --no-tags --depth=1 upstream "refs/heads/${{ github.event.pull_request.base.ref }}"
+            base_ref="upstream/${{ github.event.pull_request.base.ref }}"
+            head_ref="HEAD"
+          else
+            base_ref="${{ github.event.before }}"
+            head_ref="HEAD"
+
+            if [[ -z "${base_ref}" || "${base_ref}" == "${zero_sha}" ]] || ! git cat-file -e "${base_ref}^{commit}" 2>/dev/null; then
+              default_branch="${{ github.event.repository.default_branch }}"
+              git fetch --no-tags --depth=1 origin "refs/heads/${default_branch}"
+              base_ref="$(git merge-base HEAD "origin/${default_branch}")"
+            fi
+          fi
+
+          echo "base_ref=${base_ref}" >> "${GITHUB_OUTPUT}"
+          echo "head_ref=${head_ref}" >> "${GITHUB_OUTPUT}"
+
+      - name: Audit commit history
+        run: npm run commit:audit-branch -- --base="${{ steps.audit-range.outputs.base_ref }}" --head="${{ steps.audit-range.outputs.head_ref }}"

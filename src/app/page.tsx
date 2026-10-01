@@ -1,239 +1,204 @@
-'use client';
+import { ArrowUpRight, Download, Linkedin, Mail } from 'lucide-react';
+import { headers } from 'next/headers';
 
-import { format } from 'date-fns';
-import { ArrowRight, Check, Clock, MoreVertical, Play, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import { useTheme } from 'next-themes';
-import { ThemeSwitch } from '@/features/toggle-theme';
-import { DEFAULTS, ROUTES } from '@/shared/config/constants';
-import { useHomeData } from '@/shared/hooks/useHomeData';
-import { COLORS, getContrastColor, getDarkModeColor } from '@/shared/lib/colors';
-import { calculateTimeProgress } from '@/shared/lib/formatters';
-import { cn } from '@/shared/lib/utils';
-import { Card, CardContent } from '@/shared/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/shared/ui/dropdown-menu';
-import { PageLayout } from '@/shared/ui/page-layout';
-import { PageLoading } from '@/shared/ui/page-loading';
-import { ProgressRing } from '@/shared/ui/progress-ring';
-import { SectionHeader } from '@/shared/ui/section-header';
-import { BottomNav } from '@/widgets/bottom-nav';
-import { useHomeActions } from './hooks/useHomeActions';
+type Lang = 'en' | 'es';
 
-export default function HomePage() {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+const content = {
+  en: {
+    nav: { work: 'Work', cv: 'CV', contact: 'Contact' },
+    hero: {
+      kicker: 'ALEX TABEROA · SOFTWARE ENGINEER',
+      intent:
+        "Hi, I'm Alex. I build reliable software and I'm looking to join a strong engineering team.",
+      roles: "Roles I'm looking for: Software Engineer, Full Stack, Backend, or Integrations.",
+    },
+    work: {
+      kicker: 'OPEN WORK',
+      title: 'Work you can open and review',
+      items: [
+        {
+          title: 'LoopForge',
+          type: 'OPEN SOURCE · PUBLIC RELEASE',
+          description:
+            'Desktop orchestrator for development cycles with code agents. The repository includes a release draft and artifacts for macOS, Linux, and Windows.',
+          proof: 'Repository + release draft',
+          href: 'https://github.com/taberoajorge/loopforge',
+        },
+        {
+          title: 'Ralph',
+          type: 'OPEN SOURCE · MIT',
+          description:
+            'Tool to run autonomous development cycles using Codex, Claude, Cursor, and Gemini.',
+          proof: 'Public repository',
+          href: 'https://github.com/taberoajorge/ralph',
+        },
+        {
+          title: 'Audio Cleaner',
+          type: 'OPEN SOURCE DEMO',
+          description:
+            'Audio cleaning product with a web app and GPU worker. Refactored into a public auth-free demo that anyone can run locally.',
+          proof: 'Public repository',
+          href: 'https://github.com/taberoajorge/audio-cleaner-oss',
+        },
+      ],
+      action: 'Review evidence',
+    },
+    cv: {
+      kicker: 'RESUME',
+      title: 'Curriculum Vitae',
+      description: 'You can download my CV to see my full experience, tech stack, and background.',
+      action: 'Download CV',
+    },
+    contact: {
+      kicker: 'NEXT STEP',
+      title: "Let's talk",
+      description:
+        'Feel free to reach out if you have an open role. You can review my public code and CV before contacting me.',
+      email: 'Email me',
+      linkedin: 'View LinkedIn',
+    },
+    footer: 'English · Español',
+  },
+  es: {
+    nav: { work: 'Trabajo', cv: 'CV', contact: 'Contacto' },
+    hero: {
+      kicker: 'ALEX TABEROA · SOFTWARE ENGINEER',
+      intent:
+        'Hola, soy Alex. Creo software confiable y busco unirme a un gran equipo de ingeniería.',
+      roles: 'Roles que busco: Software Engineer, Full Stack, Backend o Integrations.',
+    },
+    work: {
+      kicker: 'TRABAJO PÚBLICO',
+      title: 'Trabajo que puedes abrir y revisar',
+      items: [
+        {
+          title: 'LoopForge',
+          type: 'OPEN SOURCE · PUBLIC RELEASE',
+          description:
+            'Orquestador de escritorio para ciclos de desarrollo con agentes de código. El repositorio incluye una release draft y artefactos para macOS, Linux y Windows.',
+          proof: 'Repositorio + release draft',
+          href: 'https://github.com/taberoajorge/loopforge',
+        },
+        {
+          title: 'Ralph',
+          type: 'OPEN SOURCE · MIT',
+          description:
+            'Herramienta para ejecutar ciclos autónomos de desarrollo con Codex, Claude, Cursor y Gemini.',
+          proof: 'Repositorio público',
+          href: 'https://github.com/taberoajorge/ralph',
+        },
+        {
+          title: 'Audio Cleaner',
+          type: 'OPEN SOURCE DEMO',
+          description:
+            'Producto para limpiar audio con una aplicación web y un worker GPU. Refactorizado a un demo público sin autenticación que cualquiera puede clonar y ejecutar.',
+          proof: 'Repositorio público',
+          href: 'https://github.com/taberoajorge/audio-cleaner-oss',
+        },
+      ],
+      action: 'Revisar evidencia',
+    },
+    cv: {
+      kicker: 'CURRÍCULUM',
+      title: 'Descarga mi CV',
+      description:
+        'Puedes descargar mi CV para ver mi experiencia completa, stack tecnológico y trayectoria.',
+      action: 'Descargar CV',
+    },
+    contact: {
+      kicker: 'SIGUIENTE PASO',
+      title: 'Hablemos',
+      description:
+        'Escríbeme si tienes un rol abierto. Puedes revisar mi código público y mi CV antes de contactarme.',
+      email: 'Escribir por email',
+      linkedin: 'Ver LinkedIn',
+    },
+    footer: 'Español · English',
+  },
+};
 
-  const { isLoading, todayTodo, inProgress, todayStats, projectMap, isFreeDay } = useHomeData();
-
-  const actions = useHomeActions(todayTodo.length);
-
-  if (isLoading) {
-    return (
-      <>
-        <PageLoading />
-        <BottomNav />
-      </>
-    );
-  }
-
-  const paginationDots = todayTodo.length > 1 && (
-    <div className="flex gap-1.5">
-      {todayTodo.map((task, index) => (
-        <button
-          type="button"
-          key={task.id}
-          onClick={() => actions.scrollToCard(index)}
-          className={cn(
-            'h-2 w-2 rounded-full transition-all',
-            index === actions.activeIndex
-              ? 'bg-primary w-4'
-              : 'bg-muted-foreground/30 hover:bg-muted-foreground/50',
-          )}
-          aria-label={`Go to task ${index + 1}`}
-        />
-      ))}
-    </div>
-  );
-
-  const header = (
-    <>
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Hello, {DEFAULTS.USER_NAME}</h1>
-        <ThemeSwitch />
-      </header>
-
-      {isFreeDay && (
-        <div className="mb-6 overflow-hidden rounded-[10px] bg-primary p-6">
-          <div className="flex flex-col items-center text-center text-primary-foreground">
-            <div className="mb-4 animate-celebrate rounded-full bg-white/20 p-6">
-              <Sparkles className="h-12 w-12" />
-            </div>
-            <h2 className="mb-2 text-2xl font-bold">Free Day!</h2>
-            <p className="opacity-90">No tasks scheduled for today. Enjoy your day!</p>
-            <Link
-              href={ROUTES.PROJECTS}
-              className="mt-4 flex items-center gap-2 font-medium hover:underline"
-            >
-              View projects <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {!isFreeDay && (
-        <div className="mb-6 overflow-hidden rounded-[10px] bg-primary p-6">
-          <div className="relative flex items-center justify-between">
-            <div className="text-primary-foreground">
-              <p className="text-sm font-medium opacity-90">Today</p>
-              <p className="mt-1 text-3xl font-bold">
-                {todayStats.completed}/{todayStats.total} tasks
-              </p>
-            </div>
-            <div className="absolute -right-4 -top-4 h-32 w-32 opacity-20">
-              <svg
-                viewBox="0 0 100 100"
-                className="h-full w-full fill-current text-white"
-                role="img"
-                aria-label="Decorative smiley face illustration"
-              >
-                <title>Decorative illustration</title>
-                <circle cx="50" cy="50" r="40" />
-                <circle cx="30" cy="40" r="8" />
-                <circle cx="70" cy="40" r="8" />
-                <path d="M30 65 Q50 80 70 65" fill="none" stroke="currentColor" strokeWidth="4" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {todayTodo.length > 0 && (
-        <section className="mb-6">
-          <SectionHeader title="To do" count={todayTodo.length} variant="primary">
-            {paginationDots}
-          </SectionHeader>
-          <div
-            ref={actions.carouselRef}
-            onScroll={actions.handleCarouselScroll}
-            className="carousel flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
-          >
-            {todayTodo.map((task) => {
-              const project = projectMap.get(task.projectId);
-              const baseColor = project?.color || COLORS.PRIMARY;
-              const cardColor = isDark ? getDarkModeColor(baseColor) : baseColor;
-              const textColor = getContrastColor(baseColor, isDark);
-
-              return (
-                <div
-                  key={task.id}
-                  className="carousel-item relative min-w-[180px] max-w-[180px] rounded-[10px] shadow-md snap-start transition-transform hover:scale-[1.02]"
-                  style={{ backgroundColor: cardColor }}
-                >
-                  <button
-                    type="button"
-                    className="w-full h-full p-4 text-left"
-                    onClick={() => actions.handleTaskClick(task)}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      {project && (
-                        <p
-                          className="text-xs font-medium flex-1 truncate"
-                          style={{ color: textColor, opacity: 0.8 }}
-                        >
-                          {project.name}
-                        </p>
-                      )}
-                      <div className="w-6" />
-                    </div>
-                    <h3 className="line-clamp-2 font-semibold" style={{ color: textColor }}>
-                      {task.title}
-                    </h3>
-                    <div
-                      className="mt-3 flex items-center gap-1 text-xs"
-                      style={{ color: textColor, opacity: 0.8 }}
-                    >
-                      <Clock className="h-3 w-3" />
-                      <span>till {format(new Date(task.deadline), 'dd MMM yyyy')}</span>
-                    </div>
-                  </button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="absolute top-3 right-3 p-1 rounded hover:bg-black/10">
-                      <MoreVertical
-                        className="h-4 w-4"
-                        style={{ color: textColor, opacity: 0.8 }}
-                      />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => actions.handleStatusChange(task, 'in_progress')}
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Start Progress
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => actions.handleStatusChange(task, 'done')}>
-                        <Check className="mr-2 h-4 w-4" />
-                        Mark as Done
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {!isFreeDay && (
-        <SectionHeader title="In progress" count={inProgress.length} variant="primary" />
-      )}
-    </>
-  );
+export default async function HomePage() {
+  const acceptLanguage = (await headers()).get('accept-language') || '';
+  const lang: Lang = acceptLanguage.toLowerCase().startsWith('es') ? 'es' : 'en';
+  const t = content[lang];
 
   return (
-    <>
-      <PageLayout header={header}>
-        {inProgress.length > 0 && (
-          <div className="flex flex-col gap-4">
-            {inProgress.map((task) => {
-              const project = projectMap.get(task.projectId);
-
-              return (
-                <Link key={task.id} href={ROUTES.PROJECT_DETAIL(task.projectId)}>
-                  <Card className="rounded-[10px] transition-all hover:shadow-md">
-                    <CardContent className="flex items-center gap-4 py-4">
-                      <div className="min-w-0 flex-1">
-                        {project && <p className="text-xs text-muted-foreground">{project.name}</p>}
-                        <h3 className="mt-1 truncate font-semibold">{task.title}</h3>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {format(new Date(task.deadline), 'h:mm a')}
-                        </p>
-                      </div>
-                      <ProgressRing
-                        progress={calculateTimeProgress(task.createdAt, task.deadline)}
-                        size={48}
-                        strokeWidth={4}
-                        color={project?.color}
-                      />
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
+    <main className="p-4 md:p-8 antialiased">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Hero / Intro */}
+        <div className="bento-card col-span-1 md:col-span-2 p-8 md:p-12 flex flex-col justify-center">
+          <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center text-white font-bold mb-6">
+            AT
           </div>
-        )}
+          <h1 className="text-3xl md:text-5xl font-semibold tracking-tight leading-tight mb-4">
+            {t.hero.intent}
+          </h1>
+          <p className="text-gray-500 text-lg">{t.hero.roles}</p>
+        </div>
 
-        {inProgress.length === 0 && !isFreeDay && (
-          <div className="rounded-[10px] border bg-card py-8 text-center text-muted-foreground">
-            No tasks in progress
+        {/* Contact & CV Bento */}
+        <div className="bento-card col-span-1 p-8 flex flex-col justify-between bg-gray-900 text-white">
+          <div>
+            <h2 className="text-xl font-medium mb-2">{t.contact.title}</h2>
+            <p className="text-gray-400 text-sm mb-8">{t.contact.description}</p>
           </div>
-        )}
-      </PageLayout>
-      <BottomNav />
-    </>
+          <div className="flex flex-col gap-3">
+            <a
+              href="/alex-taberoa-cv.pdf"
+              download
+              className="flex items-center justify-center gap-2 bg-white text-gray-900 py-3 px-4 rounded-xl text-center font-medium hover:bg-gray-100 transition-colors"
+            >
+              {t.cv.action} <Download size={16} aria-hidden="true" />
+            </a>
+            <a
+              href="mailto:job@taberoa.simplelogin.com"
+              className="flex items-center justify-center gap-2 bg-white/10 text-white py-3 px-4 rounded-xl text-center font-medium hover:bg-white/20 transition-colors"
+            >
+              {t.contact.email} <Mail size={16} aria-hidden="true" />
+            </a>
+            <a
+              href="https://www.linkedin.com/in/taberoajorge"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 bg-white/10 text-white py-3 px-4 rounded-xl text-center font-medium hover:bg-white/20 transition-colors"
+            >
+              {t.contact.linkedin} <Linkedin size={16} aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+
+        {/* Projects Header */}
+        <div className="col-span-1 md:col-span-3 mt-4 mb-2 flex justify-between items-end px-2">
+          <h2 className="text-xl font-semibold">{t.work.title}</h2>
+          <span className="text-sm text-gray-400 font-medium">{t.footer}</span>
+        </div>
+
+        {/* Project Cards */}
+        {t.work.items.map((item, index) => (
+          <div className="bento-card col-span-1 p-8 flex flex-col" key={item.title}>
+            <div
+              className={`text-xs font-semibold tracking-wider uppercase mb-3 ${index === 0 ? 'text-indigo-500' : index === 1 ? 'text-emerald-500' : 'text-orange-500'}`}
+            >
+              {item.type}
+            </div>
+            <h3 className="text-2xl font-semibold mb-3">{item.title}</h3>
+            <p className="text-gray-500 mb-6 text-sm leading-relaxed flex-grow">
+              {item.description}
+            </p>
+            <div className="mt-auto">
+              <p className="text-xs text-gray-400 mb-2">{item.proof}</p>
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                className={`inline-flex items-center text-sm font-medium text-gray-900 transition-colors ${index === 0 ? 'hover:text-indigo-600' : index === 1 ? 'hover:text-emerald-600' : 'hover:text-orange-600'}`}
+              >
+                {t.work.action} <ArrowUpRight size={15} className="ml-1" aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
   );
 }
