@@ -106,19 +106,19 @@ export default async function HomePage() {
   const t = content[lang];
 
   return (
-    <main className="w-full h-[100dvh] overflow-y-auto overflow-x-hidden p-4 md:p-6 antialiased flex flex-col items-center justify-center">
+    <main className="w-full min-h-screen md:h-screen md:overflow-hidden p-4 md:p-6 antialiased flex flex-col items-center justify-center bg-[#F5F5F7]">
       <div className="w-full max-w-[1400px] h-full flex flex-col justify-center">
-        {/* The Grid: 1 column on mobile, 4 columns 2 rows on desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 md:gap-6 h-auto md:h-[calc(100dvh-3rem)] min-h-[600px]">
-          {/* Hero: Spans 2x2 on desktop */}
-          <div className="bento-card col-span-1 md:col-span-2 md:row-span-2 p-8 md:p-12 flex flex-col justify-center relative">
-            <div className="w-16 h-16 bg-white/40 backdrop-blur-md border border-white/50 shadow-sm rounded-2xl flex items-center justify-center text-gray-800 font-bold text-xl mb-8">
+        {/* On mobile: Flex column so it scrolls naturally. On Desktop: Strict 4x2 Grid */}
+        <div className="flex flex-col md:grid md:grid-cols-4 md:grid-rows-2 gap-4 md:gap-6 w-full h-auto md:h-full">
+          {/* Hero */}
+          <div className="bento-card md:col-span-2 md:row-span-2 p-8 md:p-12 flex flex-col justify-center relative min-h-[350px]">
+            <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-white font-bold text-xl mb-8 shadow-sm">
               AT
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-tight mb-6 text-gray-900">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-tight mb-6 text-[#1D1D1F]">
               {t.hero.intent}
             </h1>
-            <p className="text-gray-600 md:text-xl font-medium">{t.hero.roles}</p>
+            <p className="text-gray-500 md:text-xl font-medium">{t.hero.roles}</p>
             <div className="mt-auto pt-8 flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-400 tracking-widest uppercase">
                 {t.footer}
@@ -127,14 +127,14 @@ export default async function HomePage() {
           </div>
 
           {/* Project 1 */}
-          <div className="bento-card col-span-1 md:col-span-1 md:row-span-1 p-6 md:p-8 flex flex-col">
-            <div className="text-xs font-bold tracking-wider uppercase mb-3 text-indigo-500/80">
+          <div className="bento-card md:col-span-1 md:row-span-1 p-6 md:p-8 flex flex-col min-h-[250px]">
+            <div className="text-xs font-bold tracking-wider uppercase mb-3 text-indigo-500">
               {t.work.items[0].type}
             </div>
-            <h3 className="text-xl md:text-2xl font-bold mb-2 text-gray-900">
+            <h3 className="text-xl md:text-2xl font-bold mb-2 text-[#1D1D1F]">
               {t.work.items[0].title}
             </h3>
-            <p className="text-gray-600 mb-4 text-sm leading-relaxed flex-grow">
+            <p className="text-gray-500 mb-4 text-sm leading-relaxed flex-grow">
               {t.work.items[0].description}
             </p>
             <div className="mt-auto flex justify-between items-center">
@@ -152,14 +152,14 @@ export default async function HomePage() {
           </div>
 
           {/* Project 2 */}
-          <div className="bento-card col-span-1 md:col-span-1 md:row-span-1 p-6 md:p-8 flex flex-col">
-            <div className="text-xs font-bold tracking-wider uppercase mb-3 text-emerald-500/80">
+          <div className="bento-card md:col-span-1 md:row-span-1 p-6 md:p-8 flex flex-col min-h-[250px]">
+            <div className="text-xs font-bold tracking-wider uppercase mb-3 text-emerald-500">
               {t.work.items[1].type}
             </div>
-            <h3 className="text-xl md:text-2xl font-bold mb-2 text-gray-900">
+            <h3 className="text-xl md:text-2xl font-bold mb-2 text-[#1D1D1F]">
               {t.work.items[1].title}
             </h3>
-            <p className="text-gray-600 mb-4 text-sm leading-relaxed flex-grow">
+            <p className="text-gray-500 mb-4 text-sm leading-relaxed flex-grow">
               {t.work.items[1].description}
             </p>
             <div className="mt-auto flex justify-between items-center">
@@ -177,14 +177,14 @@ export default async function HomePage() {
           </div>
 
           {/* Project 3 */}
-          <div className="bento-card col-span-1 md:col-span-1 md:row-span-1 p-6 md:p-8 flex flex-col">
-            <div className="text-xs font-bold tracking-wider uppercase mb-3 text-orange-500/80">
+          <div className="bento-card md:col-span-1 md:row-span-1 p-6 md:p-8 flex flex-col min-h-[250px]">
+            <div className="text-xs font-bold tracking-wider uppercase mb-3 text-orange-500">
               {t.work.items[2].type}
             </div>
-            <h3 className="text-xl md:text-2xl font-bold mb-2 text-gray-900">
+            <h3 className="text-xl md:text-2xl font-bold mb-2 text-[#1D1D1F]">
               {t.work.items[2].title}
             </h3>
-            <p className="text-gray-600 mb-4 text-sm leading-relaxed flex-grow">
+            <p className="text-gray-500 mb-4 text-sm leading-relaxed flex-grow">
               {t.work.items[2].description}
             </p>
             <div className="mt-auto flex justify-between items-center">
@@ -202,25 +202,25 @@ export default async function HomePage() {
           </div>
 
           {/* Contact Card */}
-          <div className="bento-card col-span-1 md:col-span-1 md:row-span-1 p-6 md:p-8 flex flex-col justify-between bg-white/20">
+          <div className="bento-card md:col-span-1 md:row-span-1 p-6 md:p-8 flex flex-col justify-between min-h-[250px]">
             <div>
-              <h2 className="text-xl md:text-2xl font-bold mb-2 text-gray-900">
+              <h2 className="text-xl md:text-2xl font-bold mb-2 text-[#1D1D1F]">
                 {t.contact.title}
               </h2>
-              <p className="text-gray-600 text-sm mb-6 leading-relaxed">{t.contact.description}</p>
+              <p className="text-gray-500 text-sm mb-6 leading-relaxed">{t.contact.description}</p>
             </div>
             <div className="flex flex-col gap-2">
               <a
                 href="/alex-taberoa-cv.pdf"
                 download
-                className="glass-dark-button flex items-center justify-center gap-2 text-white py-3 px-4 rounded-2xl text-center font-semibold transition-all"
+                className="glass-dark-button flex items-center justify-center gap-2 py-3 px-4 text-center font-semibold transition-all"
               >
                 {t.cv.action} <Download size={16} />
               </a>
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <a
                   href="mailto:job@taberoa.simplelogin.com"
-                  className="glass-button flex items-center justify-center gap-2 text-gray-800 py-3 rounded-2xl text-center font-medium transition-all"
+                  className="glass-button flex items-center justify-center gap-2 py-3 text-center font-medium transition-all"
                 >
                   <Mail size={16} /> <span className="text-sm">{t.contact.email}</span>
                 </a>
@@ -228,7 +228,7 @@ export default async function HomePage() {
                   href="https://www.linkedin.com/in/taberoajorge"
                   target="_blank"
                   rel="noreferrer"
-                  className="glass-button flex items-center justify-center gap-2 text-gray-800 py-3 rounded-2xl text-center font-medium transition-all"
+                  className="glass-button flex items-center justify-center gap-2 py-3 text-center font-medium transition-all"
                 >
                   <Linkedin size={16} /> <span className="text-sm">{t.contact.linkedin}</span>
                 </a>

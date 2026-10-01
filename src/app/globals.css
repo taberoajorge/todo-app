@@ -4,56 +4,50 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  background-color: #f5f5f7;
-  background-image: 
-    radial-gradient(at 10% 10%, rgba(200, 200, 255, 0.6) 0px, transparent 50%),
-    radial-gradient(at 90% 10%, rgba(255, 200, 200, 0.6) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(200, 255, 200, 0.5) 0px, transparent 50%),
-    radial-gradient(at 20% 90%, rgba(200, 200, 255, 0.6) 0px, transparent 50%),
-    radial-gradient(at 80% 90%, rgba(255, 220, 180, 0.6) 0px, transparent 50%);
-  background-attachment: fixed;
+  /* Pure Apple clean background */
+  background-color: #F5F5F7;
   color: #1D1D1F;
-  overflow: hidden; /* No scroll on body! */
 }
 
-/* Glassmorphism Bento Card */
+/* Premium Apple-style Solid Bento Cards */
 .bento-card {
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 32px;
+  background: #FFFFFF;
+  border-radius: 28px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
   box-shadow: 
-    0 4px 24px rgba(0, 0, 0, 0.04),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    0 4px 20px rgba(0, 0, 0, 0.03),
+    0 2px 8px rgba(0, 0, 0, 0.02);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
 .bento-card:hover {
-  transform: scale(1.01);
+  transform: translateY(-2px) scale(1.01);
   box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.08),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    0 12px 32px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
-/* Make inner solid elements slightly translucent so glass feel persists */
+/* Buttons inside the cards */
 .glass-button {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #F5F5F7;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  color: #1D1D1F;
+  border-radius: 9999px; /* Pill shape */
+  transition: background 0.2s, transform 0.2s;
 }
 .glass-button:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: #EAEAEA;
+  transform: scale(1.02);
 }
 
-/* For dark elements inside glass */
 .glass-dark-button {
-  background: rgba(29, 29, 31, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #1D1D1F;
+  color: #FFFFFF;
+  border-radius: 9999px; /* Pill shape */
+  transition: background 0.2s, transform 0.2s;
 }
 .glass-dark-button:hover {
-  background: rgba(29, 29, 31, 1);
+  background: #000000;
+  transform: scale(1.02);
 }
